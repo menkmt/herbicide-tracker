@@ -73,6 +73,12 @@ class ClusterWeights:
     #: Anything failing both is the same people doing different work.
     require_date_proximity_to_cluster: bool = True
     require_proximity_to_propose: bool = True
+    #: A pair may only be *proposed* as the same application if its dates are
+    #: within this many days. Section adjacency is a supporting signal, not a
+    #: substitute for being close in time: two adjacent sections treated four
+    #: months apart are two applications, and proposing otherwise buries the
+    #: reviewer in suggestions that are all wrong.
+    propose_date_days: int = 30
 
     def max_score(self) -> int:
         return (
@@ -291,7 +297,10 @@ def score_pair(
     date_proximate = same_dates or any(
         s.name == "application dates (nearby)" and s.matched for s in signals
     )
-    proximate = date_proximate or close
+    # Being in the same season is the precondition for even suggesting that two
+    # records describe one application.
+    proposable, _ = _dates_within(a, b, weights.propose_date_days)
+    proximate = date_proximate or (proposable and close)
 
     if total >= weights.auto_threshold and (
         date_proximate or not weights.require_date_proximity_to_cluster
@@ -312,8 +321,9 @@ def score_pair(
         )
     elif total >= weights.review_threshold and outcome == Outcome.SEPARATE:
         gate_note = (
-            "shares attributes but is neither close in time nor in an adjoining "
-            "section, so it is not proposed as the same application"
+            "shares attributes but the applications are more than "
+            f"{weights.propose_date_days} days apart, so they are not proposed as the "
+            "same application"
         )
     if gate_note:
         signals.append(SignalScore("proximity gate", 0, False, gate_note))
