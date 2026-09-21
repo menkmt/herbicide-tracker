@@ -1,0 +1,29 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Node
+node_modules/
+.next/
+out/
+.turbo/
+
+# Env / secrets
+.env
+.env.local
+*.local.env
+
+# Local storage of uploaded PUR source files (kept out of git; use S3 in prod)
+backend/storage/
+backend/.local_storage/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
