@@ -4,12 +4,10 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-import pytest
-
 from app.clustering.cluster import cluster_records
 from app.clustering.score import DEFAULT_WEIGHTS, Outcome, score_pair
-from app.extraction.base import ApplicationMethod, ProductApplication, PurRecord
 from app.core.siteid import decode_site_id
+from app.extraction.base import ApplicationMethod, ProductApplication, PurRecord
 
 
 def make_record(

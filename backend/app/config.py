@@ -65,8 +65,11 @@ class Settings(BaseSettings):
     admin_token: str | None = None
 
     # --- external services ----------------------------------------------
-    geocoder_provider: str = "nominatim"
-    geocoder_url: str = "https://nominatim.openstreetmap.org/search"
+    #: "census" (public domain, keyless, the default for a commercial
+    #: deployment) or "nominatim" (ODbL — see docs/LICENSING.md).
+    geocoder_provider: str = "census"
+    #: Left empty so each provider uses its own documented endpoint.
+    geocoder_url: str = ""
     geocoder_api_key: str | None = None
     #: A contact address is required by Nominatim's usage policy.
     geocoder_user_agent: str = "GroundTruthTracker/0.1 (info@example.org)"

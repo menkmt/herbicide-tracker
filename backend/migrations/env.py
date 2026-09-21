@@ -29,7 +29,12 @@ def include_object(obj, name, type_, reflected, compare_to):
         return False
     # GeoAlchemy2 manages spatial indexes itself; autogenerate should not try
     # to drop and recreate them on every revision.
-    if type_ == "index" and name and name.startswith("idx_") and name.endswith(("_geom", "_boundary")):
+    if (
+        type_ == "index"
+        and name
+        and name.startswith("idx_")
+        and name.endswith(("_geom", "_boundary"))
+    ):
         return False
     return True
 

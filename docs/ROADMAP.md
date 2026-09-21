@@ -41,7 +41,7 @@ names need confirming before each is switched on.
 | County parcel providers | Confirm Lassen's ArcGIS layer URL and field names, then add it to `VERIFIED_COUNTIES`. Until then it returns nothing rather than wrong parcels. |
 | PLSS section geometry | Confirm the BLM CadNSDI layer index and attribute names. |
 | CAL FIRE forestry lookup | Confirm the Forest Practice service's layer indices and attribute names. |
-| Geocoding | Works as written against Nominatim; needs a contact address set per its usage policy. |
+| Geocoding | Defaults to the US Census Geocoder (public domain, keyless). Request and response handling are covered by tests against a mocked transport; the live endpoint could not be called from here. |
 | Business enrichment | Needs a search provider and key; disabled by default. |
 | Inquisitor connection | Needs the workstation URL, workspace ID and an actor mapped in Inquisitor's trusted-proxy authenticator. |
 

@@ -234,7 +234,9 @@ class TestBusinessEnrichment:
         assert "30717" in result.searched[0]
 
     def test_web_sourced_facts_are_never_better_than_medium(self):
-        result = BusinessEnricher(search=self.Search()).enrich_company("WESTERN HELICOPTER SERVICES")
+        result = BusinessEnricher(search=self.Search()).enrich_company(
+            "WESTERN HELICOPTER SERVICES"
+        )
         assert all(f.provenance.confidence == "medium" for f in result.facts)
 
     def test_enrichment_is_off_unless_configured(self):
@@ -292,3 +294,75 @@ class TestPublicationPolicy:
             FactKind.OWNER_MAILING_ADDRESS, "123 Any St", subject_is_business=False
         )
         assert decision.disposition == Disposition.RESTRICTED
+
+
+class TestGeocoders:
+    """Geocoding is licence-sensitive: see docs/LICENSING.md."""
+
+    def test_the_default_is_the_public_domain_census_geocoder(self):
+        """OSM's ODbL share-alike is a risk for a product that is sold."""
+        from app.config import Settings
+        from app.providers.geocode import CensusGeocoder, get_geocoder
+
+        assert isinstance(get_geocoder(Settings()), CensusGeocoder)
+
+    def test_nominatim_is_still_available_by_configuration(self):
+        from app.config import Settings
+        from app.providers.geocode import NominatimGeocoder, get_geocoder
+
+        geocoder = get_geocoder(Settings(geocoder_provider="nominatim"))
+        assert isinstance(geocoder, NominatimGeocoder)
+
+    def test_census_geocoder_reads_a_match(self):
+        from app.providers.geocode import CensusGeocoder
+
+        payload = {
+            "result": {
+                "addressMatches": [
+                    {
+                        "matchedAddress": "175 RUSSELL AVE, SUSANVILLE, CA, 96130",
+                        "coordinates": {"x": -120.6530, "y": 40.4163},
+                    }
+                ]
+            }
+        }
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert request.url.params["benchmark"] == CensusGeocoder.BENCHMARK
+            return httpx.Response(200, json=payload)
+
+        geocoder = CensusGeocoder.__new__(CensusGeocoder)
+        geocoder._url = "https://example.invalid/onelineaddress"
+        import app.providers.geocode as geocode_module
+
+        original = geocode_module.httpx.get
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+        geocode_module.httpx.get = lambda url, **kwargs: client.get(url, **kwargs)
+        try:
+            located = geocoder.geocode("175 Russell Ave, Susanville CA")
+        finally:
+            geocode_module.httpx.get = original
+
+        assert located is not None
+        assert located.latitude == pytest.approx(40.4163)
+        assert located.source == "us_census"
+
+    def test_no_match_returns_none_rather_than_a_near_miss(self):
+        """A radius search centred on the wrong house is worse than no answer."""
+        from app.providers.geocode import CensusGeocoder
+
+        geocoder = CensusGeocoder.__new__(CensusGeocoder)
+        geocoder._url = "https://example.invalid/onelineaddress"
+        import app.providers.geocode as geocode_module
+
+        client = httpx.Client(
+            transport=httpx.MockTransport(
+                lambda request: httpx.Response(200, json={"result": {"addressMatches": []}})
+            )
+        )
+        original = geocode_module.httpx.get
+        geocode_module.httpx.get = lambda url, **kwargs: client.get(url, **kwargs)
+        try:
+            assert geocoder.geocode("nowhere at all") is None
+        finally:
+            geocode_module.httpx.get = original

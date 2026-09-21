@@ -6,7 +6,15 @@ from datetime import date
 
 import pytest
 
-from app.core.access import ANONYMOUS, AccessDenied, Capability, Principal, Tier, clamp_page_size, require
+from app.core.access import (
+    ANONYMOUS,
+    AccessDenied,
+    Capability,
+    Principal,
+    Tier,
+    clamp_page_size,
+    require,
+)
 from app.jobs.inquisitor_sync import CpraSyncConfig, run_monthly_sync, vault_provenance
 from app.pipeline.parcels_stage import ParcelOutcome, association_note, select_parcels
 from app.providers.inquisitor import Campaign, InquisitorError, VaultFile
