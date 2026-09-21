@@ -261,6 +261,9 @@ def extract(
     result = ExtractionResult(source_name=name, sha256=sha256, profile=PROFILE_NAME)
 
     rows = read_rows(path)
+    # Keep the export's own text too, so a record can be traced back to the
+    # exact line of the file it came from without re-reading the original.
+    result.document_text = "\n".join("\t".join(str(c) for c in row) for row in rows)
     header = find_header_row(rows)
     if header is None:
         result.issues.append(
