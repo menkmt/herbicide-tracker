@@ -1,0 +1,21 @@
+Pesticide Use Report
+Report Status:                                          9/19/2024 11:58 AM
+Submittal Status: Submitted to DPR
+
+Permittee/Permit Operator               Operator ID/Permit Number    Document number
+Mike's Land Mgmt                        180254                       WEB2419159565
+
+County No   Section   Township   Range   Meridian   App Method/Fume Code   Commercial Applicator (if any)
+18          27        29N        11E     M          Ground                 HIGHLANDERS FOREST, LLC
+
+Site Identification Number                          Planted Area - Units
+TBarr                                               63 ACRES
+
+Location                                Block ID    Pre-plant application
+Terry Barr                                          No
+
+Start Date/Time Applied      End Date/Time Applied      Treated Area - Units    Commodity Treated
+7/19/2024 6:00 AM            7/19/2024 2:00 PM          63 ACRES                30000 FOREST, TMBRLND
+
+Product Name                 EPA Reg No                 Quantity Used   Quantity Units
+NUFARM POLARIS SP HERBICIDE  228-536-AA                 32              Gallon

@@ -25,7 +25,7 @@ from dataclasses import dataclass, field, replace
 from datetime import date
 from typing import Any
 
-from app.core.normalize import compare_companies
+from app.core.normalize import COMPANY_REJECT_THRESHOLD, compare_companies
 from app.core.siteid import sections_are_adjacent
 from app.extraction.base import PurRecord
 
@@ -73,6 +73,12 @@ class ClusterWeights:
     #: Anything failing both is the same people doing different work.
     require_date_proximity_to_cluster: bool = True
     require_proximity_to_propose: bool = True
+    #: An application belongs to one operator. When two records both name an
+    #: operator and the names are clearly different businesses, they cannot be
+    #: the same application however much else they share — two companies
+    #: treating neighbouring sections on the same day is ordinary, and
+    #: proposing a merge there is always wrong.
+    different_owner_disqualifies: bool = True
     #: A pair may only be *proposed* as the same application if its dates are
     #: within this many days. Section adjacency is a supporting signal, not a
     #: substitute for being close in time: two adjacent sections treated four
@@ -294,6 +300,13 @@ def score_pair(
 
     total = sum(s.points for s in signals)
 
+    # Disqualifying signal, checked before the score is interpreted.
+    named_both = bool(a.operator_name and b.operator_name)
+    owner_conflict = (
+        weights.different_owner_disqualifies and named_both and not owner_match.matched
+        and owner_match.score < COMPANY_REJECT_THRESHOLD
+    )
+
     date_proximate = same_dates or any(
         s.name == "application dates (nearby)" and s.matched for s in signals
     )
@@ -301,6 +314,21 @@ def score_pair(
     # records describe one application.
     proposable, _ = _dates_within(a, b, weights.propose_date_days)
     proximate = date_proximate or (proposable and close)
+
+    if owner_conflict:
+        outcome = Outcome.SEPARATE
+        signals.append(
+            SignalScore(
+                "different operators",
+                0,
+                False,
+                f"{a.operator_name!r} and {b.operator_name!r} are different businesses, "
+                "so these cannot be one application",
+            )
+        )
+        return PairScore(
+            left=left_key, right=right_key, total=total, outcome=outcome, signals=signals
+        )
 
     if total >= weights.auto_threshold and (
         date_proximate or not weights.require_date_proximity_to_cluster

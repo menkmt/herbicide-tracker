@@ -362,7 +362,7 @@ def cluster_records(
         cluster.record_indices.append(index)
         cluster.records.append(record)
 
-    for left, right, score in joining:
+    for left, _right, score in joining:
         grouped[union.find(left)].joining_pairs.append(score)
 
     # Attach each proposal to the cluster(s) it would affect, so a reviewer

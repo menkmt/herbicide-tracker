@@ -114,7 +114,9 @@ def compute_statistics(
             County.slug == county
         )
 
-    grouped = grouped.group_by(column).order_by(func.count(func.distinct(ApplicationCluster.id)).desc())
+    grouped = grouped.group_by(column).order_by(
+        func.count(func.distinct(ApplicationCluster.id)).desc()
+    )
 
     breakdown = [
         {

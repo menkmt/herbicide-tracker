@@ -115,7 +115,8 @@ def detect(path: str | Path, *, allow_ocr: bool = True) -> Detection:
         )
 
     text_profiles = [
-        p for p in PROFILES
+        p
+        for p in PROFILES
         if p.sniff_text is not None and (not p.suffixes or suffix in p.suffixes)
     ]
     if text_profiles:
@@ -126,7 +127,9 @@ def detect(path: str | Path, *, allow_ocr: bool = True) -> Detection:
             return Detection(None, 0.0, f"the file could not be read: {exc}", scores)
         for profile in text_profiles:
             try:
-                scores[profile.name] = max(scores.get(profile.name, 0.0), profile.sniff_text(sample))
+                scores[profile.name] = max(
+                    scores.get(profile.name, 0.0), profile.sniff_text(sample)
+                )
             except Exception:
                 scores.setdefault(profile.name, 0.0)
 

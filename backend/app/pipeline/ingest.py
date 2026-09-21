@@ -52,9 +52,11 @@ from app.models import (
     PermitMaterial,
     PermitSite,
     PurProduct,
-    PurRecord as PurRecordRow,
     ReviewItem,
     SourceFile,
+)
+from app.models import (
+    PurRecord as PurRecordRow,
 )
 from app.pipeline import chemicals_stage
 from app.pipeline.storage import SourceStorage, get_storage
@@ -527,7 +529,8 @@ def ingest_files(
     publishable = [
         (record, row)
         for record, row in new_records
-        if record.in_coverage and classify_site(record.commodity_code, record.commodity).is_published
+        if record.in_coverage
+        and classify_site(record.commodity_code, record.commodity).is_published
     ]
     summary.excluded_not_forestry = len(
         [

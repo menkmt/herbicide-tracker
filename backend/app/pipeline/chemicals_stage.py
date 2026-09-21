@@ -175,7 +175,7 @@ def run(
             continue
         provenance = Provenance(
             source_type=SourceType.RESTRICTED_MATERIALS_PERMIT,
-            source_name=f"{permit.county_id and 'County' or ''} restricted materials permit".strip(),
+            source_name="County restricted materials permit",
             source_id=permit.permit_number,
             extraction_method=ExtractionMethod.DOCX_TABLE,
         )
@@ -194,18 +194,25 @@ def run(
             )
         )
 
-    # Protect Lassen's own watchlist.
-    all_ingredients = session.scalars(select(ActiveIngredient)).all()
+    # Protect Lassen's own watchlist, applied to every chemical the tracker
+    # knows about by name. That means the active ingredients identified in use
+    # records *and* the materials named on county permits: a watchlisted
+    # chemical that a county has authorised should be flagged as watchlisted
+    # even before a use report for it arrives, and flagging it in one place but
+    # not the other would look arbitrary on the public site.
+    subjects: list[str] = [
+        i.name for i in session.scalars(select(ActiveIngredient)).all()
+    ]
+    for material in session.scalars(select(PermitMaterial)).all():
+        if material.name and material.name not in subjects:
+            subjects.append(material.name)
+
     watch_provenance = Provenance(
         source_type=SourceType.WATCHLIST,
         source_name="Protect Lassen watchlist",
         extraction_method=ExtractionMethod.HUMAN,
     )
-    flag_set.extend(
-        flags_from_watchlist(
-            [i.name for i in all_ingredients], watchlist, watch_provenance
-        )
-    )
+    flag_set.extend(flags_from_watchlist(subjects, watchlist, watch_provenance))
 
     _persist_flags(session, flag_set, result)
     _mark_ingredients(session, flag_set)

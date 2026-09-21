@@ -260,7 +260,10 @@ def by_product(record: PurRecord) -> list[tuple[Any, str]]:
 def by_township(record: PurRecord) -> list[tuple[Any, str]]:
     if not record.site:
         return [("unknown", "(location not decoded)")]
-    key = f"T{record.site.township}{record.site.township_dir} R{record.site.range}{record.site.range_dir}"
+    key = (
+        f"T{record.site.township}{record.site.township_dir} "
+        f"R{record.site.range}{record.site.range_dir}"
+    )
     return [(key, key)]
 
 

@@ -120,7 +120,11 @@ def parse_form_fields(text: str) -> dict[str, str]:
         # A row of labels: read the next non-empty line positionally.
         if len(positions) >= _MIN_LABELS_FOR_HEADER:
             following = next(
-                (lines[j] for j in range(index + 1, min(index + 3, len(lines))) if lines[j].strip()),
+                (
+                    lines[j]
+                    for j in range(index + 1, min(index + 3, len(lines)))
+                    if lines[j].strip()
+                ),
                 "",
             )
             if following:
@@ -146,7 +150,11 @@ def parse_form_fields(text: str) -> dict[str, str]:
         canonical = match_label(re.sub(r"[:]\s*$", "", line).strip())
         if canonical and canonical not in values:
             following = next(
-                (lines[j] for j in range(index + 1, min(index + 3, len(lines))) if lines[j].strip()),
+                (
+                    lines[j]
+                    for j in range(index + 1, min(index + 3, len(lines)))
+                    if lines[j].strip()
+                ),
                 "",
             )
             if following and not match_label(following.strip()):

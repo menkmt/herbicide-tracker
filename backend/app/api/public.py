@@ -15,7 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_principal, rate_limit, require_capability
+from app.api.deps import rate_limit, require_capability
 from app.config import Settings, get_settings
 from app.core.access import Capability, Principal, clamp_page_size
 from app.core.coverage import DocumentKind

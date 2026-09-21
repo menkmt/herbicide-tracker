@@ -32,7 +32,6 @@ from app.extraction.base import (
 )
 from app.extraction.fieldmap import (
     map_headers,
-    match_label,
     parse_bool,
     parse_date,
     parse_datetime,
@@ -154,7 +153,10 @@ def _resolve_site(
         try:
             record.site = decode_structured(
                 township=t_match.group(1) if t_match else township,
-                township_dir=(t_match.group(2) if t_match else None) or _get(values, "township_dir"),
+                township_dir=(
+                    (t_match.group(2) if t_match else None)
+                    or _get(values, "township_dir")
+                ),
                 range_=r_match.group(1) if r_match else range_,
                 range_dir=(r_match.group(2) if r_match else None) or _get(values, "range_dir"),
                 section=section,

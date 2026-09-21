@@ -178,7 +178,9 @@ def _normalise_subsection(text: str | None) -> str | None:
     return " ".join(f"{p}/4" for p in parts)
 
 
-def _resolve_defaults(county: str | None, defaults: CountyPlssDefaults | None) -> CountyPlssDefaults:
+def _resolve_defaults(
+    county: str | None, defaults: CountyPlssDefaults | None
+) -> CountyPlssDefaults:
     if defaults is not None:
         return defaults
     if county:
@@ -217,7 +219,9 @@ def _build(
 
     if inferred:
         source = f"{county} county defaults" if county else "statewide defaults"
-        warnings.append(f"{', '.join(inferred)} not present in site ID; filled from {source}")
+        warnings.append(
+            f"{', '.join(inferred)} not present in site ID; filled from {source}"
+        )
 
     # Everything present in the source itself is a verified read of the record.
     # Anything filled in from a county default is an inference, and in counties

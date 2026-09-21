@@ -113,7 +113,9 @@ class AccessDenied(PermissionError):
             )
         else:
             hint = "Your key does not include this capability."
-        super().__init__(f"{capability.value} is not available on the {principal.tier} tier. {hint}")
+        super().__init__(
+            f"{capability.value} is not available on the {principal.tier} tier. {hint}"
+        )
 
 
 def require(principal: Principal, capability: Capability) -> None:
@@ -121,11 +123,15 @@ def require(principal: Principal, capability: Capability) -> None:
         raise AccessDenied(capability, principal)
 
 
-def max_page_size(principal: Principal, *, public: int, subscriber: int) -> int:
+def max_page_size(
+    principal: Principal, *, public: int, subscriber: int
+) -> int:
     return subscriber if principal.can(Capability.LARGE_PAGES) else public
 
 
-def clamp_page_size(principal: Principal, requested: int | None, *, public: int, subscriber: int) -> int:
+def clamp_page_size(
+    principal: Principal, requested: int | None, *, public: int, subscriber: int
+) -> int:
     limit = max_page_size(principal, public=public, subscriber=subscriber)
     if requested is None:
         return min(25, limit)

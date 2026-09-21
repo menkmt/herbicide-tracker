@@ -51,7 +51,9 @@ PROFILE_NAME = "restricted_materials_permit"
 
 # An MTRS as printed on a permit, tolerating the letter/digit confusion OCR
 # introduces (O for 0, I/l for 1) inside the numeric groups.
-MTRS_PATTERN = re.compile(r"\b([MHS])\s?([0-9OIl]{1,3})([NS])\s?([0-9OIl]{1,3})([EW])\s?([0-9OIl]{1,3})\b")
+MTRS_PATTERN = re.compile(
+    r"\b([MHS])\s?([0-9OIl]{1,3})([NS])\s?([0-9OIl]{1,3})([EW])\s?([0-9OIl]{1,3})\b"
+)
 
 PERMIT_NUMBER_PATTERN = re.compile(
     r"RESTRICTED\s+MATERIALS\s+PERMIT\s*[#:]?\s*([0-9]{2}\s?-\s?[0-9]{2}\s?-\s?[0-9]{3,})",
@@ -462,7 +464,9 @@ def _site_blocks(lines: list[str]) -> list[list[str]]:
         return any(MTRS_PATTERN.search(line) for line in block)
 
     for line in lines:
-        if line.upper().startswith(("SITE ", "OPERATION-WIDE", "LOCATION ", "COMMODITY", "DISTRICT")):
+        if line.upper().startswith(
+            ("SITE ", "OPERATION-WIDE", "LOCATION ", "COMMODITY", "DISTRICT")
+        ):
             continue
         # Page headers repeat inside the table on scans.
         if "RESTRICTED MATERIALS PERMIT" in line.upper() or line.upper().startswith("PAGE "):
