@@ -1,0 +1,31 @@
+# Protect Lassen watchlist
+#
+# Chemicals Protect Lassen wants prominently flagged on the public site.
+#
+# IMPORTANT: a watchlist entry is an editorial decision by Protect Lassen. It
+# is NOT a statement that the chemical is legally restricted. The tracker
+# displays the two separately and always says which is which, so a watchlist
+# flag can never be mistaken for a regulatory one.
+#
+# Edit this file (or the admin screen that writes it) to change the watchlist;
+# nothing in the code hard-codes these names.
+
+version: 1
+updated: 2026-09-21
+
+active_ingredients:
+  - name: 2,4-D
+    aliases: ["2,4-D", "2,4-D, 2-ethylhexyl ester", "2,4-D choline salt", "2,4-D dimethylamine salt"]
+    reason: >-
+      Selected by Protect Lassen for prominent display because of its volume of
+      use in local forestry applications and community concern about drift.
+    added: 2026-09-21
+
+  - name: Hexazinone
+    aliases: ["Hexazinone"]
+    reason: >-
+      Selected by Protect Lassen for prominent display because of its mobility
+      in soil and its detection history in groundwater.
+    added: 2026-09-21
+
+products: []

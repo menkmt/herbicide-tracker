@@ -1,0 +1,129 @@
+# Starter product data.
+#
+# WHAT THIS IS: a small seed of product-to-active-ingredient mappings so the
+# tracker is useful before it has talked to DPR, covering the products that
+# actually appear in the Lassen County forestry records.
+#
+# WHAT THIS IS NOT: an authoritative source. Every entry carries a
+# `verification` level:
+#
+#   verified  - the value is corroborated by a cited authoritative source.
+#   seed      - a starting value that the DPR/EPA resolver must confirm before
+#               anything derived from it is published. Records relying on a
+#               `seed` value are routed to review, not published automatically.
+#
+# `percent` is left null wherever the exact figure is not corroborated. A null
+# percentage means pounds-of-active-ingredient totals will report themselves as
+# incomplete rather than silently under-count. Fill these from the product
+# label or DPR's product database, not from memory.
+
+version: 1
+
+products:
+  - epa_reg_no: "62719-259"
+    name: TRANSLINE
+    registrant: Corteva Agriscience
+    formulation: SL
+    verification: seed
+    source: "EPA registration number as reported on Lassen County use records"
+    ingredients:
+      - name: Clopyralid
+        percent: null
+
+  - epa_reg_no: "2935-50176"
+    name: SUPER SPREAD MSO
+    registrant: Wilbur-Ellis
+    formulation: liquid
+    is_adjuvant: true
+    verification: seed
+    source: "EPA registration number as reported on Lassen County use records"
+    # An adjuvant is a spray additive, not a pesticide: it has no pesticidal
+    # active ingredient, so it must not be counted in active-ingredient totals.
+    ingredients: []
+
+  - epa_reg_no: "524-529"
+    name: ROUNDUP PRO CONCENTRATE HERBICIDE
+    registrant: Bayer/Monsanto
+    formulation: SL
+    verification: seed
+    source: "EPA registration number as reported on Lassen County use records"
+    ingredients:
+      - name: Glyphosate
+        percent: null
+
+  - epa_reg_no: "228-536"
+    name: NUFARM POLARIS SP HERBICIDE
+    registrant: Nufarm
+    formulation: SP
+    verification: seed
+    source: "EPA registration number as reported on Lassen County use records"
+    ingredients:
+      - name: Imazapyr
+        percent: null
+
+  - epa_reg_no: "62719-556"
+    name: ACCORD XRT II
+    registrant: Corteva Agriscience
+    formulation: SL
+    verification: seed
+    source: "EPA registration number as reported on Lassen County use records"
+    ingredients:
+      - name: Glyphosate
+        percent: null
+
+  - epa_reg_no: "352-581"
+    name: DU PONT VELPAR DF HERBICIDE
+    registrant: DuPont
+    formulation: DF
+    verification: seed
+    source: "EPA registration number as reported on Lassen County use records"
+    ingredients:
+      - name: Hexazinone
+        percent: null
+
+  - epa_reg_no: "71368-11"
+    name: WEEDONE LV6 EC
+    registrant: Nufarm
+    formulation: EC
+    verification: seed
+    source: "EPA registration number as reported on Lassen County use records"
+    ingredients:
+      - name: 2,4-D
+        percent: null
+
+  - epa_reg_no: "62719-553"
+    name: FORESTRY GARLON XRT
+    registrant: Corteva Agriscience
+    formulation: EC
+    verification: seed
+    source: "EPA registration number as reported on Lassen County use records"
+    ingredients:
+      - name: Triclopyr
+        percent: null
+
+  - epa_reg_no: "62719-634"
+    name: FREELEXX
+    registrant: Corteva Agriscience
+    formulation: SL
+    verification: seed
+    source: "EPA registration number as reported on Lassen County use records"
+    ingredients:
+      - name: 2,4-D
+        percent: null
+
+  - epa_reg_no: "81927-6"
+    name: ALLIGARE ROTARY 2 SL
+    registrant: Alligare LLC
+    formulation: SL
+    verification: seed
+    source: "EPA registration number as reported on Lassen County use records"
+    # Active ingredient deliberately left unresolved: it is not corroborated
+    # here, so the resolver must look it up rather than the tracker guessing.
+    ingredients: []
+
+  - epa_reg_no: "228-381"
+    name: "RIVERDALE FORESTERS' NON-SELECTIVE HERBICIDE"
+    registrant: Nufarm
+    verification: seed
+    source: "EPA registration number as reported on Lassen County use records"
+    ingredients: []
