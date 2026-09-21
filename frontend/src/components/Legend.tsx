@@ -8,7 +8,16 @@
  * key is shown wherever colour appears rather than hidden on an About page.
  */
 
-const PUBLISHER = process.env.NEXT_PUBLIC_PUBLISHER_NAME ?? "Protect Lassen";
+/**
+ * The organisation running this deployment, if it has named itself.
+ *
+ * With no publisher configured the flag is labelled by what it is rather than
+ * attributed to an organisation that does not exist, which keeps the key
+ * accurate on a deployment that has not been branded yet.
+ */
+const PUBLISHER = process.env.NEXT_PUBLIC_PUBLISHER_NAME?.trim() || null;
+const WATCHLIST_LABEL = PUBLISHER ? `${PUBLISHER} Watchlist` : "Editorial Watchlist";
+const CHOSEN_BY = PUBLISHER ?? "the organisation publishing this tracker";
 
 export function Legend({ compact = false }: { compact?: boolean }) {
   return (
@@ -33,11 +42,11 @@ export function Legend({ compact = false }: { compact?: boolean }) {
           </p>
         </div>
         <div>
-          <span className="badge red">{PUBLISHER} Watchlist</span>
+          <span className="badge red">{WATCHLIST_LABEL}</span>
           <p>
-            A chemical {PUBLISHER} has chosen to highlight. This is an editorial
-            judgement by {PUBLISHER}, <strong>not</strong> a legal restriction. A chemical
-            can be watchlisted without being restricted, and restricted without being
+            A chemical {CHOSEN_BY} has chosen to highlight. This is an editorial
+            judgement, <strong>not</strong> a legal restriction. A chemical can be
+            watchlisted without being restricted, and restricted without being
             watchlisted.
           </p>
         </div>

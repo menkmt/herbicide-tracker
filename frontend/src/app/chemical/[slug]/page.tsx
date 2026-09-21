@@ -64,7 +64,7 @@ export default async function ChemicalPage({ params }: Props) {
             <div className="src">
               {flag.is_regulatory
                 ? "Regulatory status, from: "
-                : "Protect Lassen editorial flag, from: "}
+                : "Editorial flag, from: "}
               {flag.source_url ? (
                 <a href={flag.source_url} rel="nofollow noopener">{flag.source}</a>
               ) : (

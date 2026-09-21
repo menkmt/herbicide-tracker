@@ -4,7 +4,7 @@ Turns the pesticide records that companies are required to file with California
 county agricultural commissioners into a public, searchable record of what was
 sprayed, where, by whom, and what happened afterwards.
 
-Built for Protect Lassen, designed statewide from the first table, and named
+Built for the publisher, designed statewide from the first table, and named
 through configuration so it can be deployed and sold under another name.
 
 ```
@@ -105,7 +105,7 @@ and an ambiguous "ounce" is resolved from the product's formulation or reported
 separately. A total that is missing something says so.
 
 **It does not call a watchlisted chemical restricted.** Regulatory restrictions
-and Protect Lassen's editorial watchlist are both shown in red, and every flag
+and the publisher's editorial watchlist are both shown in red, and every flag
 states which of the two it is.
 
 **It does not call an allegation a finding.** A Notice of Proposed Action is an

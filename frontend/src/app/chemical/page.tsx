@@ -14,7 +14,7 @@ export default async function ChemicalIndexPage() {
       <h1>Chemicals</h1>
       <p className="lede">
         Active ingredients identified in the products reported on these applications.
-        Regulatory status and Protect Lassen&rsquo;s own watchlist are shown separately,
+        Regulatory status and the editorial watchlist are shown separately,
         because they mean different things.
       </p>
       {chemicals.length === 0 ? (
@@ -30,7 +30,7 @@ export default async function ChemicalIndexPage() {
                   <span className="badge red">California Restricted Material</span>
                 )}
                 {chemical.is_watchlisted && (
-                  <span className="badge red">Protect Lassen Watchlist</span>
+                  <span className="badge red">Editorial Watchlist</span>
                 )}
               </div>
             </Link>

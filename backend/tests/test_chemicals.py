@@ -24,7 +24,7 @@ PERMIT_SOURCE = Provenance(
 )
 WATCHLIST_SOURCE = Provenance(
     source_type=SourceType.WATCHLIST,
-    source_name="Protect Lassen watchlist",
+    source_name="the publisher's watchlist",
     extraction_method=ExtractionMethod.HUMAN,
 )
 LABEL_SOURCE = Provenance(
@@ -67,7 +67,7 @@ class TestRegulatoryFlags:
 
 
 class TestWatchlistIsNotRegulation:
-    """The watchlist is Protect Lassen's editorial judgement, not the law."""
+    """The watchlist is the publisher's editorial judgement, not the law."""
 
     def test_watchlist_flags_are_marked_non_regulatory(self):
         flags = flags_from_watchlist(["Hexazinone"], load_watchlist(), WATCHLIST_SOURCE)
@@ -93,14 +93,14 @@ class TestWatchlistIsNotRegulation:
 
     def test_a_watchlist_only_chemical_says_watchlist(self):
         flags = flags_from_watchlist(["Hexazinone"], load_watchlist(), WATCHLIST_SOURCE)
-        assert flags.headline() == "RED — Protect Lassen Watchlist"
+        assert flags.headline() == "RED — Editorial Watchlist"
         assert not flags.regulatory_red
 
     def test_an_unlisted_chemical_gets_no_flag(self):
         assert not flags_from_watchlist(["Glyphosate"], load_watchlist(), WATCHLIST_SOURCE).flags
 
     def test_the_watchlist_is_data_not_code(self, tmp_path):
-        """Protect Lassen must be able to change it without a deployment."""
+        """the publisher must be able to change it without a deployment."""
         path = tmp_path / "watchlist.yml"
         path.write_text(
             yaml.safe_dump(

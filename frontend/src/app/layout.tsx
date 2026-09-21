@@ -4,8 +4,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Protect Lassen Herbicide Tracker",
-    template: "%s · Protect Lassen Herbicide Tracker",
+    default: "Ground Truth",
+    template: "%s · Ground Truth",
   },
   description:
     "A public, searchable record of forestry herbicide and pesticide applications in " +
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     "restricted materials permits.",
   openGraph: {
     type: "website",
-    siteName: "Protect Lassen Herbicide Tracker",
+    siteName: "Ground Truth",
   },
   robots: { index: true, follow: true },
 };
@@ -25,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="site">
           <div className="wrap inner">
             <Link href="/" className="brand">
-              Protect Lassen · Herbicide Tracker
+              Ground Truth
             </Link>
             <nav>
               <Link href="/herbicide-tracker">Applications</Link>

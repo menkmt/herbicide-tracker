@@ -1,5 +1,5 @@
 [project]
-name = "protect-lassen-tracker"
+name = "ground-truth-tracker"
 version = "0.1.0"
 description = "California pesticide-use report (PUR) ingestion, enrichment and public tracker backend"
 requires-python = ">=3.11"

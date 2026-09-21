@@ -244,7 +244,7 @@ def set_title(
     previous = cluster.title
     cluster.title_override = body.title
     cluster.title = body.title
-    cluster.title_basis = "set by a Protect Lassen administrator"
+    cluster.title_basis = "set by a the publisher administrator"
     _audit(
         session,
         principal,

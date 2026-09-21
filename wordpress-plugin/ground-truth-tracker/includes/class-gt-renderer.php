@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-final class PLHT_Renderer
+final class GT_Renderer
 {
     /**
      * Build a page.
@@ -36,27 +36,27 @@ final class PLHT_Renderer
 
     private function index_page(): ?array
     {
-        $counties = PLHT_Client::get('/api/counties');
-        $recent = PLHT_Client::get('/api/applications', ['page_size' => 25]);
+        $counties = GT_Client::get('/api/counties');
+        $recent = GT_Client::get('/api/applications', ['page_size' => 25]);
         if (is_wp_error($counties) || is_wp_error($recent)) {
             return $this->error_page($counties instanceof WP_Error ? $counties : $recent);
         }
 
-        $body = '<h1>' . esc_html__('Herbicide tracker', 'protect-lassen-tracker') . '</h1>';
-        $body .= '<p class="plht-lede">' . esc_html__(
+        $body = '<h1>' . esc_html__('Herbicide tracker', 'ground-truth-tracker') . '</h1>';
+        $body .= '<p class="gt-lede">' . esc_html__(
             'Forestry herbicide and pesticide applications reported to California county agricultural commissioners.',
-            'protect-lassen-tracker'
+            'ground-truth-tracker'
         ) . '</p>';
 
-        $body .= '<h2>' . esc_html__('Browse by county', 'protect-lassen-tracker') . '</h2><ul class="plht-counties">';
+        $body .= '<h2>' . esc_html__('Browse by county', 'ground-truth-tracker') . '</h2><ul class="gt-counties">';
         foreach ($counties['counties'] ?? [] as $county) {
             $body .= sprintf(
-                '<li><a href="%s">%s</a> <span class="plht-muted">%s</span></li>',
-                esc_url(PLHT_Router::url('county', (string) $county['slug'])),
+                '<li><a href="%s">%s</a> <span class="gt-muted">%s</span></li>',
+                esc_url(GT_Router::url('county', (string) $county['slug'])),
                 esc_html((string) $county['name']),
                 esc_html(sprintf(
                     /* translators: 1: number of applications, 2: acreage */
-                    __('%1$d applications · %2$s acres', 'protect-lassen-tracker'),
+                    __('%1$d applications · %2$s acres', 'ground-truth-tracker'),
                     (int) $county['applications'],
                     number_format_i18n((float) $county['acres'])
                 ))
@@ -64,13 +64,13 @@ final class PLHT_Renderer
         }
         $body .= '</ul>';
 
-        $body .= '<h2>' . esc_html__('Recent applications', 'protect-lassen-tracker') . '</h2>';
+        $body .= '<h2>' . esc_html__('Recent applications', 'ground-truth-tracker') . '</h2>';
         $body .= $this->grid($recent['applications'] ?? []);
 
         return [
-            'title'       => __('Herbicide Tracker', 'protect-lassen-tracker'),
-            'description' => __('Forestry herbicide applications reported to California county agricultural commissioners.', 'protect-lassen-tracker'),
-            'canonical'   => PLHT_Router::url('index'),
+            'title'       => __('Herbicide Tracker', 'ground-truth-tracker'),
+            'description' => __('Forestry herbicide applications reported to California county agricultural commissioners.', 'ground-truth-tracker'),
+            'canonical'   => GT_Router::url('index'),
             'og_type'     => 'website',
             'schema'      => [],
             'body'        => $body,
@@ -79,7 +79,7 @@ final class PLHT_Renderer
 
     private function county_page(string $slug): ?array
     {
-        $counties = PLHT_Client::get('/api/counties');
+        $counties = GT_Client::get('/api/counties');
         if (is_wp_error($counties)) {
             return $this->error_page($counties);
         }
@@ -94,31 +94,31 @@ final class PLHT_Renderer
             return null;
         }
 
-        $data = PLHT_Client::get('/api/applications', ['county' => $slug, 'page_size' => 50]);
+        $data = GT_Client::get('/api/applications', ['county' => $slug, 'page_size' => 50]);
         if (is_wp_error($data)) {
             return $this->error_page($data);
         }
 
         $body = sprintf('<h1>%s</h1>', esc_html(sprintf(
             /* translators: %s: county name */
-            __('%s County herbicide applications', 'protect-lassen-tracker'),
+            __('%s County herbicide applications', 'ground-truth-tracker'),
             (string) $match['name']
         )));
-        $body .= '<p class="plht-lede">' . esc_html(sprintf(
+        $body .= '<p class="gt-lede">' . esc_html(sprintf(
             /* translators: 1: applications, 2: acres */
-            __('%1$d published applications covering %2$s reported acres.', 'protect-lassen-tracker'),
+            __('%1$d published applications covering %2$s reported acres.', 'ground-truth-tracker'),
             (int) $match['applications'],
             number_format_i18n((float) $match['acres'])
         )) . '</p>';
         $body .= $this->grid($data['applications'] ?? []);
 
         return [
-            'title'       => sprintf(__('%s County', 'protect-lassen-tracker'), (string) $match['name']),
+            'title'       => sprintf(__('%s County', 'ground-truth-tracker'), (string) $match['name']),
             'description' => sprintf(
-                __('Forestry herbicide applications reported in %s County, California.', 'protect-lassen-tracker'),
+                __('Forestry herbicide applications reported in %s County, California.', 'ground-truth-tracker'),
                 (string) $match['name']
             ),
-            'canonical'   => PLHT_Router::url('county', $slug),
+            'canonical'   => GT_Router::url('county', $slug),
             'og_type'     => 'website',
             'schema'      => [],
             'body'        => $body,
@@ -127,7 +127,7 @@ final class PLHT_Renderer
 
     private function application_page(string $slug): ?array
     {
-        $application = PLHT_Client::get('/api/applications/' . rawurlencode($slug));
+        $application = GT_Client::get('/api/applications/' . rawurlencode($slug));
         if (is_wp_error($application)) {
             $status = $application->get_error_data()['status'] ?? 0;
             return $status === 404 ? null : $this->error_page($application);
@@ -136,62 +136,62 @@ final class PLHT_Renderer
         $when = $this->date_range($application['date_start'] ?? null, $application['date_end'] ?? null);
         $acres = $application['acres'] !== null
             ? number_format_i18n((float) $application['acres'], 1)
-            : __('not reported', 'protect-lassen-tracker');
+            : __('not reported', 'ground-truth-tracker');
 
         $body = sprintf('<h1>%s</h1>', esc_html((string) $application['title']));
         $body .= sprintf(
-            '<p class="plht-lede">%s</p>',
+            '<p class="gt-lede">%s</p>',
             esc_html(sprintf(
                 /* translators: 1: date range, 2: acres, 3: method */
-                __('%1$s · %2$s acres reported treated · %3$s application', 'protect-lassen-tracker'),
+                __('%1$s · %2$s acres reported treated · %3$s application', 'ground-truth-tracker'),
                 $when,
                 $acres,
                 $application['method'] === 'aerial'
-                    ? __('Aerial', 'protect-lassen-tracker')
-                    : __('Ground', 'protect-lassen-tracker')
+                    ? __('Aerial', 'ground-truth-tracker')
+                    : __('Ground', 'ground-truth-tracker')
             ))
         );
 
         if (!empty($application['is_planned'])) {
-            $body .= '<p class="plht-notice plht-warn">' . esc_html__(
+            $body .= '<p class="gt-notice gt-warn">' . esc_html__(
                 'This is a notice of intent. It records that the operator told the county they intended to apply a restricted material. It is not a report that the application took place.',
-                'protect-lassen-tracker'
+                'ground-truth-tracker'
             ) . '</p>';
         }
 
-        $body .= '<h2>' . esc_html__('Chemical warnings', 'protect-lassen-tracker') . '</h2>';
+        $body .= '<h2>' . esc_html__('Chemical warnings', 'ground-truth-tracker') . '</h2>';
         $flags = $application['flags']['flags'] ?? [];
         if ($flags === []) {
-            $body .= '<p class="plht-muted">' . esc_html__('No restricted-material or watchlist flags are recorded.', 'protect-lassen-tracker') . '</p>';
+            $body .= '<p class="gt-muted">' . esc_html__('No restricted-material or watchlist flags are recorded.', 'ground-truth-tracker') . '</p>';
         } else {
             foreach ($flags as $flag) {
                 $body .= sprintf(
-                    '<div class="plht-flag plht-flag-%s"><strong>%s</strong><div>%s</div><div class="plht-src">%s %s</div></div>',
+                    '<div class="gt-flag gt-flag-%s"><strong>%s</strong><div>%s</div><div class="gt-src">%s %s</div></div>',
                     esc_attr((string) $flag['level']),
                     esc_html((string) $flag['label']),
                     esc_html((string) $flag['detail']),
                     esc_html(
                         !empty($flag['is_regulatory'])
-                            ? __('Regulatory status, from:', 'protect-lassen-tracker')
-                            : __('Protect Lassen editorial flag, from:', 'protect-lassen-tracker')
+                            ? __('Regulatory status, from:', 'ground-truth-tracker')
+                            : __('Ground Truth editorial flag, from:', 'ground-truth-tracker')
                     ),
                     esc_html((string) $flag['source_citation'])
                 );
             }
         }
 
-        $body .= '<h2>' . esc_html__('Where', 'protect-lassen-tracker') . '</h2>';
-        $body .= '<dl class="plht-facts">';
-        $body .= $this->fact(__('Township / range / section', 'protect-lassen-tracker'), implode(', ', $application['mtrs'] ?? []));
-        $body .= $this->fact(__('PUR site IDs', 'protect-lassen-tracker'), implode(', ', $application['site_ids'] ?? []));
-        $body .= $this->fact(__('Permit numbers', 'protect-lassen-tracker'), implode(', ', $application['permit_numbers'] ?? []));
-        $body .= $this->fact(__('Property owner / operator', 'protect-lassen-tracker'), (string) ($application['owner'] ?? ''));
+        $body .= '<h2>' . esc_html__('Where', 'ground-truth-tracker') . '</h2>';
+        $body .= '<dl class="gt-facts">';
+        $body .= $this->fact(__('Township / range / section', 'ground-truth-tracker'), implode(', ', $application['mtrs'] ?? []));
+        $body .= $this->fact(__('PUR site IDs', 'ground-truth-tracker'), implode(', ', $application['site_ids'] ?? []));
+        $body .= $this->fact(__('Permit numbers', 'ground-truth-tracker'), implode(', ', $application['permit_numbers'] ?? []));
+        $body .= $this->fact(__('Property owner / operator', 'ground-truth-tracker'), (string) ($application['owner'] ?? ''));
         $body .= '</dl>';
 
         if (!empty($application['parcels'])) {
-            $body .= '<p class="plht-muted plht-small">' . esc_html__(
+            $body .= '<p class="gt-muted gt-small">' . esc_html__(
                 'The parcels below are recorded to the operator named on this application and lie within the sections it reports. They show property boundaries, not the area actually sprayed.',
-                'protect-lassen-tracker'
+                'ground-truth-tracker'
             ) . '</p><ul>';
             foreach ($application['parcels'] as $parcel) {
                 $body .= sprintf(
@@ -203,15 +203,15 @@ final class PLHT_Renderer
             $body .= '</ul>';
         }
 
-        $body .= '<h2>' . esc_html__('Pesticide use reports', 'protect-lassen-tracker') . '</h2>';
-        $body .= '<table class="plht-records"><thead><tr>';
+        $body .= '<h2>' . esc_html__('Pesticide use reports', 'ground-truth-tracker') . '</h2>';
+        $body .= '<table class="gt-records"><thead><tr>';
         foreach ([
-            __('Report', 'protect-lassen-tracker'),
-            __('Location', 'protect-lassen-tracker'),
-            __('Date', 'protect-lassen-tracker'),
-            __('Applicator', 'protect-lassen-tracker'),
-            __('Products', 'protect-lassen-tracker'),
-            __('Acres', 'protect-lassen-tracker'),
+            __('Report', 'ground-truth-tracker'),
+            __('Location', 'ground-truth-tracker'),
+            __('Date', 'ground-truth-tracker'),
+            __('Applicator', 'ground-truth-tracker'),
+            __('Products', 'ground-truth-tracker'),
+            __('Acres', 'ground-truth-tracker'),
         ] as $heading) {
             $body .= '<th>' . esc_html($heading) . '</th>';
         }
@@ -242,26 +242,26 @@ final class PLHT_Renderer
             'title'       => sprintf('%s — %s', (string) $application['title'], $when),
             'description' => sprintf(
                 /* translators: 1: title, 2: acres, 3: date range, 4: county */
-                __('%1$s: %2$s acres treated %3$s in %4$s County, California.', 'protect-lassen-tracker'),
+                __('%1$s: %2$s acres treated %3$s in %4$s County, California.', 'ground-truth-tracker'),
                 (string) $application['title'],
                 $acres,
                 $when,
                 (string) ($application['county'] ?? '')
             ),
-            'canonical'   => PLHT_Router::url('application', $slug),
+            'canonical'   => GT_Router::url('application', $slug),
             'og_type'     => 'article',
             'schema'      => [
                 '@context'    => 'https://schema.org',
                 '@type'       => 'Dataset',
                 'name'        => (string) $application['title'],
                 'description' => sprintf(
-                    __('Pesticide use reports for %s.', 'protect-lassen-tracker'),
+                    __('Pesticide use reports for %s.', 'ground-truth-tracker'),
                     (string) $application['title']
                 ),
-                'url'         => PLHT_Router::url('application', $slug),
+                'url'         => GT_Router::url('application', $slug),
                 'temporalCoverage' => trim((string) ($application['date_start'] ?? '') . '/' . (string) ($application['date_end'] ?? '')),
-                'creator'     => ['@type' => 'Organization', 'name' => 'Protect Lassen'],
-                'isBasedOn'   => __('California pesticide use reports obtained from county agricultural commissioners', 'protect-lassen-tracker'),
+                'creator'     => ['@type' => 'Organization', 'name' => 'Ground Truth'],
+                'isBasedOn'   => __('California pesticide use reports obtained from county agricultural commissioners', 'ground-truth-tracker'),
             ],
             'body'        => $body,
         ];
@@ -269,30 +269,30 @@ final class PLHT_Renderer
 
     private function chemicals_page(): ?array
     {
-        $data = PLHT_Client::get('/api/chemicals');
+        $data = GT_Client::get('/api/chemicals');
         if (is_wp_error($data)) {
             return $this->error_page($data);
         }
-        $body = '<h1>' . esc_html__('Chemicals', 'protect-lassen-tracker') . '</h1><ul>';
+        $body = '<h1>' . esc_html__('Chemicals', 'ground-truth-tracker') . '</h1><ul>';
         foreach ($data['chemicals'] ?? [] as $chemical) {
             $body .= sprintf(
                 '<li><a href="%s">%s</a>%s%s</li>',
-                esc_url(PLHT_Router::url('chemical', (string) $chemical['slug'])),
+                esc_url(GT_Router::url('chemical', (string) $chemical['slug'])),
                 esc_html((string) $chemical['name']),
                 !empty($chemical['is_california_restricted'])
-                    ? ' <span class="plht-badge plht-red">' . esc_html__('California Restricted Material', 'protect-lassen-tracker') . '</span>'
+                    ? ' <span class="gt-badge gt-red">' . esc_html__('California Restricted Material', 'ground-truth-tracker') . '</span>'
                     : '',
                 !empty($chemical['is_watchlisted'])
-                    ? ' <span class="plht-badge plht-red">' . esc_html__('Protect Lassen Watchlist', 'protect-lassen-tracker') . '</span>'
+                    ? ' <span class="gt-badge gt-red">' . esc_html__('Ground Truth Watchlist', 'ground-truth-tracker') . '</span>'
                     : ''
             );
         }
         $body .= '</ul>';
 
         return [
-            'title'       => __('Chemicals', 'protect-lassen-tracker'),
-            'description' => __('Active ingredients applied in the forestry herbicide applications this tracker covers.', 'protect-lassen-tracker'),
-            'canonical'   => PLHT_Router::url('chemicals'),
+            'title'       => __('Chemicals', 'ground-truth-tracker'),
+            'description' => __('Active ingredients applied in the forestry herbicide applications this tracker covers.', 'ground-truth-tracker'),
+            'canonical'   => GT_Router::url('chemicals'),
             'og_type'     => 'website',
             'schema'      => [],
             'body'        => $body,
@@ -301,7 +301,7 @@ final class PLHT_Renderer
 
     private function chemical_page(string $slug): ?array
     {
-        $chemical = PLHT_Client::get('/api/chemicals/' . rawurlencode($slug));
+        $chemical = GT_Client::get('/api/chemicals/' . rawurlencode($slug));
         if (is_wp_error($chemical)) {
             $status = $chemical->get_error_data()['status'] ?? 0;
             return $status === 404 ? null : $this->error_page($chemical);
@@ -310,7 +310,7 @@ final class PLHT_Renderer
         $body = sprintf('<h1>%s</h1>', esc_html((string) $chemical['name']));
         foreach ($chemical['flags'] ?? [] as $flag) {
             $body .= sprintf(
-                '<div class="plht-flag plht-flag-%s"><strong>%s</strong><div>%s</div><div class="plht-src">%s</div></div>',
+                '<div class="gt-flag gt-flag-%s"><strong>%s</strong><div>%s</div><div class="gt-src">%s</div></div>',
                 esc_attr((string) $flag['level']),
                 esc_html((string) $flag['label']),
                 esc_html((string) $flag['detail']),
@@ -323,16 +323,16 @@ final class PLHT_Renderer
                 $body .= sprintf('<h2>%s</h2><p>%s</p>', esc_html(ucwords(str_replace('_', ' ', $key))), esc_html((string) $text));
             }
         }
-        $body .= '<h2>' . esc_html__('Applications using this chemical', 'protect-lassen-tracker') . '</h2>';
+        $body .= '<h2>' . esc_html__('Applications using this chemical', 'ground-truth-tracker') . '</h2>';
         $body .= $this->grid($chemical['applications'] ?? []);
 
         return [
             'title'       => (string) $chemical['name'],
             'description' => sprintf(
-                __('%s in California forestry herbicide applications: regulatory status and every tracked application that used it.', 'protect-lassen-tracker'),
+                __('%s in California forestry herbicide applications: regulatory status and every tracked application that used it.', 'ground-truth-tracker'),
                 (string) $chemical['name']
             ),
-            'canonical'   => PLHT_Router::url('chemical', $slug),
+            'canonical'   => GT_Router::url('chemical', $slug),
             'og_type'     => 'article',
             'schema'      => [],
             'body'        => $body,
@@ -344,19 +344,19 @@ final class PLHT_Renderer
         $address = isset($_GET['address']) ? sanitize_text_field(wp_unslash((string) $_GET['address'])) : '';
         $miles = isset($_GET['miles']) ? (float) $_GET['miles'] : 1.0;
 
-        $body = '<h1>' . esc_html__('Search near an address', 'protect-lassen-tracker') . '</h1>';
+        $body = '<h1>' . esc_html__('Search near an address', 'ground-truth-tracker') . '</h1>';
         $body .= sprintf(
-            '<form method="get" action="%s" class="plht-form">
-                <label for="plht-address">%s</label>
-                <input id="plht-address" type="text" name="address" value="%s" required />
-                <label for="plht-miles">%s</label>
-                <select id="plht-miles" name="miles">%s</select>
+            '<form method="get" action="%s" class="gt-form">
+                <label for="gt-address">%s</label>
+                <input id="gt-address" type="text" name="address" value="%s" required />
+                <label for="gt-miles">%s</label>
+                <select id="gt-miles" name="miles">%s</select>
                 <button type="submit">%s</button>
             </form>',
-            esc_url(PLHT_Router::url('near')),
-            esc_html__('Address', 'protect-lassen-tracker'),
+            esc_url(GT_Router::url('near')),
+            esc_html__('Address', 'ground-truth-tracker'),
             esc_attr($address),
-            esc_html__('Radius', 'protect-lassen-tracker'),
+            esc_html__('Radius', 'ground-truth-tracker'),
             implode('', array_map(
                 static fn($value) => sprintf(
                     '<option value="%1$s"%2$s>%1$s mi</option>',
@@ -365,27 +365,27 @@ final class PLHT_Renderer
                 ),
                 [0.5, 1, 2, 5, 10, 25]
             )),
-            esc_html__('Search', 'protect-lassen-tracker')
+            esc_html__('Search', 'ground-truth-tracker')
         );
-        $body .= '<p class="plht-muted plht-small">' . esc_html__(
+        $body .= '<p class="gt-muted gt-small">' . esc_html__(
             'The address you enter is used for this search only. It is not stored.',
-            'protect-lassen-tracker'
+            'ground-truth-tracker'
         ) . '</p>';
 
         if ($address !== '') {
             // Never cached: the query contains a member of the public's address.
-            $results = PLHT_Client::get('/api/search/radius', ['address' => $address, 'miles' => $miles], 0);
+            $results = GT_Client::get('/api/search/radius', ['address' => $address, 'miles' => $miles], 0);
             if (is_wp_error($results)) {
-                $body .= '<p class="plht-notice plht-warn">' . esc_html__(
+                $body .= '<p class="gt-notice gt-warn">' . esc_html__(
                     'That address could not be located.',
-                    'protect-lassen-tracker'
+                    'ground-truth-tracker'
                 ) . '</p>';
             } else {
                 $body .= sprintf(
                     '<h2>%s</h2>',
                     esc_html(sprintf(
                         /* translators: 1: count, 2: miles */
-                        __('%1$d applications within %2$s miles', 'protect-lassen-tracker'),
+                        __('%1$d applications within %2$s miles', 'ground-truth-tracker'),
                         (int) $results['count'],
                         (string) $results['radius_miles']
                     ))
@@ -394,7 +394,7 @@ final class PLHT_Renderer
                 foreach ($results['results'] ?? [] as $row) {
                     $body .= sprintf(
                         '<li><a href="%s">%s</a> — %s mi — %s</li>',
-                        esc_url(PLHT_Router::url('application', (string) $row['slug'])),
+                        esc_url(GT_Router::url('application', (string) $row['slug'])),
                         esc_html((string) $row['title']),
                         esc_html((string) $row['distance_miles']),
                         esc_html((string) ($row['date'] ?? ''))
@@ -405,9 +405,9 @@ final class PLHT_Renderer
         }
 
         return [
-            'title'       => __('Search near an address', 'protect-lassen-tracker'),
-            'description' => __('Find forestry herbicide applications within a chosen distance of an address.', 'protect-lassen-tracker'),
-            'canonical'   => PLHT_Router::url('near'),
+            'title'       => __('Search near an address', 'ground-truth-tracker'),
+            'description' => __('Find forestry herbicide applications within a chosen distance of an address.', 'ground-truth-tracker'),
+            'canonical'   => GT_Router::url('near'),
             'og_type'     => 'website',
             'schema'      => [],
             'body'        => $body,
@@ -418,27 +418,27 @@ final class PLHT_Renderer
     public function grid(array $rows): string
     {
         if ($rows === []) {
-            return '<p class="plht-muted">' . esc_html__('No applications to show.', 'protect-lassen-tracker') . '</p>';
+            return '<p class="gt-muted">' . esc_html__('No applications to show.', 'ground-truth-tracker') . '</p>';
         }
 
-        $html = '<table class="plht-grid"><thead><tr>';
+        $html = '<table class="gt-grid"><thead><tr>';
         foreach ([
-            __('Date', 'protect-lassen-tracker'),
-            __('Project / property', 'protect-lassen-tracker'),
-            __('Acres', 'protect-lassen-tracker'),
-            __('Chemicals', 'protect-lassen-tracker'),
-            __('Method', 'protect-lassen-tracker'),
+            __('Date', 'ground-truth-tracker'),
+            __('Project / property', 'ground-truth-tracker'),
+            __('Acres', 'ground-truth-tracker'),
+            __('Chemicals', 'ground-truth-tracker'),
+            __('Method', 'ground-truth-tracker'),
         ] as $heading) {
             $html .= '<th>' . esc_html($heading) . '</th>';
         }
         $html .= '</tr></thead><tbody>';
 
         foreach ($rows as $row) {
-            $url = PLHT_Router::url('application', (string) $row['slug']);
+            $url = GT_Router::url('application', (string) $row['slug']);
             $flag = '';
             if (!empty($row['flag_headline'])) {
                 $flag = sprintf(
-                    '<span class="plht-badge plht-%s">%s</span>',
+                    '<span class="gt-badge gt-%s">%s</span>',
                     esc_attr((string) $row['flag_level']),
                     esc_html(preg_replace('/^\w+\s*—\s*/u', '', (string) $row['flag_headline']) ?? '')
                 );
@@ -447,19 +447,19 @@ final class PLHT_Renderer
                 '<tr class="%s">
                     <td><a href="%s">%s</a></td>
                     <td><a href="%s"><strong>%s</strong>%s</a></td>
-                    <td class="plht-num"><a href="%s">%s</a></td>
+                    <td class="gt-num"><a href="%s">%s</a></td>
                     <td><a href="%s">%s %s</a></td>
                     <td><a href="%s">%s</a></td>
                 </tr>',
-                ($row['flag_level'] ?? '') === 'red' ? 'plht-row-red' : '',
+                ($row['flag_level'] ?? '') === 'red' ? 'gt-row-red' : '',
                 esc_url($url),
                 esc_html($this->date_range($row['date_start'] ?? null, $row['date_end'] ?? null)),
                 esc_url($url),
                 esc_html((string) $row['title']),
                 (int) ($row['record_count'] ?? 1) > 1
-                    ? '<div class="plht-muted plht-small">' . esc_html(sprintf(
+                    ? '<div class="gt-muted gt-small">' . esc_html(sprintf(
                         /* translators: %d: number of reports */
-                        __('%d pesticide use reports', 'protect-lassen-tracker'),
+                        __('%d pesticide use reports', 'ground-truth-tracker'),
                         (int) $row['record_count']
                     )) . '</div>'
                     : '',
@@ -470,8 +470,8 @@ final class PLHT_Renderer
                 $flag,
                 esc_url($url),
                 esc_html(($row['method'] ?? '') === 'aerial'
-                    ? __('Aerial', 'protect-lassen-tracker')
-                    : __('Ground', 'protect-lassen-tracker'))
+                    ? __('Aerial', 'ground-truth-tracker')
+                    : __('Ground', 'ground-truth-tracker'))
             );
         }
         return $html . '</tbody></table>';
@@ -482,14 +482,14 @@ final class PLHT_Renderer
         return sprintf(
             '<dt>%s</dt><dd>%s</dd>',
             esc_html($label),
-            esc_html($value !== '' ? $value : __('Not reported', 'protect-lassen-tracker'))
+            esc_html($value !== '' ? $value : __('Not reported', 'ground-truth-tracker'))
         );
     }
 
     private function date_range(?string $start, ?string $end): string
     {
         if (!$start) {
-            return __('Date not reported', 'protect-lassen-tracker');
+            return __('Date not reported', 'ground-truth-tracker');
         }
         $format = (string) get_option('date_format', 'M j, Y');
         $from = date_i18n($format, strtotime($start));
@@ -503,15 +503,15 @@ final class PLHT_Renderer
     private function error_page(WP_Error $error): array
     {
         return [
-            'title'       => __('Herbicide tracker unavailable', 'protect-lassen-tracker'),
-            'description' => __('The herbicide tracker is temporarily unavailable.', 'protect-lassen-tracker'),
-            'canonical'   => PLHT_Router::url('index'),
+            'title'       => __('Herbicide tracker unavailable', 'ground-truth-tracker'),
+            'description' => __('The herbicide tracker is temporarily unavailable.', 'ground-truth-tracker'),
+            'canonical'   => GT_Router::url('index'),
             'og_type'     => 'website',
             'schema'      => [],
-            'body'        => '<h1>' . esc_html__('Temporarily unavailable', 'protect-lassen-tracker') . '</h1>'
-                . '<p>' . esc_html__('The tracker could not be reached. Please try again shortly.', 'protect-lassen-tracker') . '</p>'
+            'body'        => '<h1>' . esc_html__('Temporarily unavailable', 'ground-truth-tracker') . '</h1>'
+                . '<p>' . esc_html__('The tracker could not be reached. Please try again shortly.', 'ground-truth-tracker') . '</p>'
                 . (current_user_can('manage_options')
-                    ? '<p class="plht-muted plht-small">' . esc_html($error->get_error_message()) . '</p>'
+                    ? '<p class="gt-muted gt-small">' . esc_html($error->get_error_message()) . '</p>'
                     : ''),
         ];
     }

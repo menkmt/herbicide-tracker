@@ -73,8 +73,8 @@ export default async function AboutPage() {
           document that establishes them, usually the county&rsquo;s own permit.
         </li>
         <li>
-          <strong>Protect Lassen watchlist</strong> — chemicals Protect Lassen has
-          chosen to highlight. This is an editorial judgement, not a legal status, and
+          <strong>Editorial watchlist</strong> — chemicals the organisation
+          publishing this tracker has chosen to highlight. This is an editorial judgement, not a legal status, and
           is labelled as such wherever it appears.
         </li>
       </ul>

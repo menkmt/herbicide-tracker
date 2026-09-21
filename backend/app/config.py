@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     coverage_start: date = COVERAGE_START
 
     # --- public site -----------------------------------------------------
-    public_base_url: str = "https://protectlassen.org"
+    public_base_url: str = "https://example.org"
     api_base_url: str = "http://localhost:8000"
     #: Counties whose data is published.  Empty means all imported counties.
     published_counties: list[str] = Field(default_factory=list)
@@ -69,7 +69,7 @@ class Settings(BaseSettings):
     geocoder_url: str = "https://nominatim.openstreetmap.org/search"
     geocoder_api_key: str | None = None
     #: A contact address is required by Nominatim's usage policy.
-    geocoder_user_agent: str = "ProtectLassenTracker/0.1 (info@protectlassen.org)"
+    geocoder_user_agent: str = "GroundTruthTracker/0.1 (info@example.org)"
 
     calfire_fp_gis_url: str = (
         "https://egis.fire.ca.gov/arcgis/rest/services/FRAP/ForestPractice/MapServer"

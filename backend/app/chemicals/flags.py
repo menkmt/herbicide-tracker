@@ -4,7 +4,7 @@ Three levels, kept strictly separate because they mean different things:
 
 ``RED``
     Either a *regulatory* restriction (a California restricted material or a
-    federally restricted-use pesticide) or a *Protect Lassen watchlist* entry.
+    federally restricted-use pesticide) or a *the publisher's watchlist* entry.
     These are never merged.  Calling a watchlisted chemical "restricted" would
     be a false statement about the law, so every red flag states its own exact
     reason and the public page prints that reason, not a generic label.
@@ -48,7 +48,7 @@ class FlagReason:
 
     CALIFORNIA_RESTRICTED = "california_restricted_material"
     FEDERAL_RESTRICTED_USE = "federal_restricted_use"
-    WATCHLIST = "protect_lassen_watchlist"
+    WATCHLIST = "publisher_watchlist"
 
     GROUNDWATER_PROTECTION = "groundwater_protection_list"
     LEACHING = "leaching_potential"
@@ -67,7 +67,7 @@ class FlagReason:
         CALIFORNIA_RESTRICTED: "RED — California Restricted Material",
         FEDERAL_RESTRICTED_USE: "RED — Federal Restricted Use Pesticide",
         # Filled from configuration at import time so a deployment run by
-        # another organisation does not display Protect Lassen's name.
+        # another organisation does not display the publisher's name.
         WATCHLIST: "RED — {watchlist}",
         GROUNDWATER_PROTECTION: "ORANGE — Groundwater protection listing",
         LEACHING: "ORANGE — Leaching and soil mobility concern",
@@ -106,7 +106,7 @@ class ChemicalFlag:
     subject: str
     detail: str
     provenance: Provenance
-    #: True for regulatory restrictions, False for Protect Lassen's own
+    #: True for regulatory restrictions, False for the publisher's own
     #: editorial watchlist.  The public page uses this to keep the two apart.
     is_regulatory: bool = True
 
@@ -255,10 +255,10 @@ def flags_from_watchlist(
     watchlist: dict[str, Any],
     provenance: Provenance,
 ) -> FlagSet:
-    """Flag active ingredients on Protect Lassen's watchlist.
+    """Flag active ingredients on the publisher's watchlist.
 
     These are explicitly marked non-regulatory so the public page can say
-    "Protect Lassen Watchlist" rather than implying a legal restriction.
+    "Editorial Watchlist" rather than implying a legal restriction.
     """
     result = FlagSet()
     entries = watchlist.get("active_ingredients") or []
@@ -277,7 +277,7 @@ def flags_from_watchlist(
                 reason=FlagReason.WATCHLIST,
                 subject=entry.get("name", name),
                 detail=(entry.get("reason") or "").strip()
-                or f"{name} is on the Protect Lassen watchlist.",
+                or f"{name} is on the the publisher's watchlist.",
                 provenance=provenance.with_confidence(Confidence.MANUAL),
                 is_regulatory=False,
             )

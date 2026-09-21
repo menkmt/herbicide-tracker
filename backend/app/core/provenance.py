@@ -39,7 +39,7 @@ class SourceType:
     STATE_PARCEL_GIS = "state_parcel_gis"
     PLSS_GIS = "plss_gis"
     GEOCODER = "geocoder"
-    WATCHLIST = "protect_lassen_watchlist"
+    WATCHLIST = "publisher_watchlist"
     ADMIN_REVIEW = "admin_review"
     DERIVED = "derived"
 

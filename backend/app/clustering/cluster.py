@@ -184,7 +184,7 @@ class ApplicationCluster:
     def title_basis(self) -> str:
         """How the title was chosen — shown on the page so it is never opaque."""
         if self.title_override:
-            return "set by a Protect Lassen administrator"
+            return "set by a the publisher administrator"
         if self.project_name:
             return self.project_source or "official forestry project record"
         if self.landowner or self.owner:

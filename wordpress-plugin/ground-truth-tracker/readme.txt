@@ -1,5 +1,5 @@
-=== Protect Lassen Herbicide Tracker ===
-Contributors: protectlassen
+=== Ground Truth ===
+Contributors: groundtruth
 Tags: public records, pesticides, forestry, transparency
 Requires at least: 6.4
 Tested up to: 6.7
@@ -7,7 +7,7 @@ Requires PHP: 8.1
 Stable tag: 0.1.0
 License: GPLv2 or later
 
-Publishes the Protect Lassen herbicide tracker on a WordPress site with real,
+Publishes the the herbicide tracker on a WordPress site with real,
 crawlable URLs.
 
 == Description ==
@@ -33,7 +33,7 @@ Pages provided, all real URLs on your site:
 Each emits its own title, meta description, canonical link, OpenGraph tags and,
 for application pages, schema.org Dataset structured data.
 
-A shortcode, `[protect_lassen_tracker]`, embeds a filtered application grid in
+A shortcode, `[ground_truth_tracker]`, embeds a filtered application grid in
 any page or post.
 
 == Installation ==

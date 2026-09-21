@@ -13,13 +13,13 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-final class PLHT_Client
+final class GT_Client
 {
-    private const CACHE_PREFIX = 'plht_';
+    private const CACHE_PREFIX = 'gt_';
 
     public static function base_url(): string
     {
-        return untrailingslashit((string) get_option('plht_api_url', 'http://localhost:8000'));
+        return untrailingslashit((string) get_option('gt_api_url', 'http://localhost:8000'));
     }
 
     /**
@@ -45,7 +45,7 @@ final class PLHT_Client
         }
 
         $headers = ['Accept' => 'application/json'];
-        $api_key = (string) get_option('plht_api_key', '');
+        $api_key = (string) get_option('gt_api_key', '');
         if ($api_key !== '') {
             $headers['X-API-Key'] = $api_key;
         }
@@ -62,10 +62,10 @@ final class PLHT_Client
         $code = wp_remote_retrieve_response_code($response);
         if ($code !== 200) {
             return new WP_Error(
-                'plht_api_error',
+                'gt_api_error',
                 sprintf(
                     /* translators: 1: API path, 2: HTTP status code */
-                    __('The herbicide tracker API returned %2$d for %1$s.', 'protect-lassen-tracker'),
+                    __('The herbicide tracker API returned %2$d for %1$s.', 'ground-truth-tracker'),
                     $path,
                     $code
                 ),
@@ -75,7 +75,7 @@ final class PLHT_Client
 
         $decoded = json_decode(wp_remote_retrieve_body($response), true);
         if (!is_array($decoded)) {
-            return new WP_Error('plht_bad_json', __('The tracker API returned an unreadable response.', 'protect-lassen-tracker'));
+            return new WP_Error('gt_bad_json', __('The tracker API returned an unreadable response.', 'ground-truth-tracker'));
         }
 
         if ($ttl > 0) {

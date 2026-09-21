@@ -1,6 +1,6 @@
 """The tracker's temporal and documentary scope.
 
-Protect Lassen's tracker covers **2020 onward**.  Earlier records exist and are
+this tracker covers **2020 onward**.  Earlier records exist and are
 sometimes produced by agencies in response to a records request, but they are
 out of scope: they are kept as source documents and never published as
 applications.  Having one place that decides this stops the rule from drifting

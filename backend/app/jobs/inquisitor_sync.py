@@ -15,7 +15,7 @@ Two deliberate restraints:
 
 * **Sending is opt-in.**  The campaign is *created* automatically, but its
   targets are only dispatched when ``auto_send`` is set.  A records request
-  sent to a public agency is correspondence from Protect Lassen, and the
+  sent to a public agency is correspondence from the publisher, and the
   default is that a person approves it going out.
 * **The watermark only advances on success.**  A partial sync leaves the
   watermark where it was, so the next run re-examines the same window rather

@@ -1,15 +1,15 @@
 <?php
 /**
- * Plugin Name:       Protect Lassen Herbicide Tracker
- * Plugin URI:        https://protectlassen.org/herbicide-tracker/
- * Description:       Publishes the Protect Lassen herbicide tracker inside WordPress with real,
+ * Plugin Name:       Ground Truth
+ * Plugin URI:        https://example.org/herbicide-tracker/
+ * Description:       Publishes the the herbicide tracker inside WordPress with real,
  *                    crawlable URLs. Talks to the tracker API; does not embed an iframe.
  * Version:           0.1.0
  * Requires at least: 6.4
  * Requires PHP:      8.1
- * Author:            Protect Lassen
+ * Author:            Ground Truth
  * License:           GPL-2.0-or-later
- * Text Domain:       protect-lassen-tracker
+ * Text Domain:       ground-truth-tracker
  *
  * Design notes
  * ------------
@@ -30,20 +30,20 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('PLHT_VERSION', '0.1.0');
-define('PLHT_PATH', plugin_dir_path(__FILE__));
-define('PLHT_URL', plugin_dir_url(__FILE__));
+define('GT_VERSION', '0.1.0');
+define('GT_PATH', plugin_dir_path(__FILE__));
+define('GT_URL', plugin_dir_url(__FILE__));
 
-require_once PLHT_PATH . 'includes/class-plht-client.php';
-require_once PLHT_PATH . 'includes/class-plht-router.php';
-require_once PLHT_PATH . 'includes/class-plht-renderer.php';
-require_once PLHT_PATH . 'includes/class-plht-settings.php';
-require_once PLHT_PATH . 'includes/class-plht-shortcode.php';
+require_once GT_PATH . 'includes/class-gt-client.php';
+require_once GT_PATH . 'includes/class-gt-router.php';
+require_once GT_PATH . 'includes/class-gt-renderer.php';
+require_once GT_PATH . 'includes/class-gt-settings.php';
+require_once GT_PATH . 'includes/class-gt-shortcode.php';
 
 add_action('plugins_loaded', static function (): void {
-    PLHT_Settings::init();
-    PLHT_Router::init();
-    PLHT_Shortcode::init();
+    GT_Settings::init();
+    GT_Router::init();
+    GT_Shortcode::init();
 });
 
 /**
@@ -51,7 +51,7 @@ add_action('plugins_loaded', static function (): void {
  * and undone on deactivation rather than on every request.
  */
 register_activation_hook(__FILE__, static function (): void {
-    PLHT_Router::register_rules();
+    GT_Router::register_rules();
     flush_rewrite_rules();
 });
 

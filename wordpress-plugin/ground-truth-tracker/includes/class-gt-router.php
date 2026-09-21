@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-final class PLHT_Router
+final class GT_Router
 {
     /** @var array<string, string> route name => rewrite regex */
     private const ROUTES = [
@@ -34,12 +34,12 @@ final class PLHT_Router
 
     public static function register_rules(): void
     {
-        add_rewrite_rule(self::ROUTES['index'], 'index.php?plht_route=index', 'top');
-        add_rewrite_rule(self::ROUTES['county'], 'index.php?plht_route=county&plht_slug=$matches[1]', 'top');
-        add_rewrite_rule(self::ROUTES['application'], 'index.php?plht_route=application&plht_slug=$matches[1]', 'top');
-        add_rewrite_rule(self::ROUTES['chemicals'], 'index.php?plht_route=chemicals', 'top');
-        add_rewrite_rule(self::ROUTES['chemical'], 'index.php?plht_route=chemical&plht_slug=$matches[1]', 'top');
-        add_rewrite_rule(self::ROUTES['near'], 'index.php?plht_route=near', 'top');
+        add_rewrite_rule(self::ROUTES['index'], 'index.php?gt_route=index', 'top');
+        add_rewrite_rule(self::ROUTES['county'], 'index.php?gt_route=county&gt_slug=$matches[1]', 'top');
+        add_rewrite_rule(self::ROUTES['application'], 'index.php?gt_route=application&gt_slug=$matches[1]', 'top');
+        add_rewrite_rule(self::ROUTES['chemicals'], 'index.php?gt_route=chemicals', 'top');
+        add_rewrite_rule(self::ROUTES['chemical'], 'index.php?gt_route=chemical&gt_slug=$matches[1]', 'top');
+        add_rewrite_rule(self::ROUTES['near'], 'index.php?gt_route=near', 'top');
     }
 
     /**
@@ -48,20 +48,20 @@ final class PLHT_Router
      */
     public static function query_vars(array $vars): array
     {
-        $vars[] = 'plht_route';
-        $vars[] = 'plht_slug';
+        $vars[] = 'gt_route';
+        $vars[] = 'gt_slug';
         return $vars;
     }
 
     public static function dispatch(): void
     {
-        $route = get_query_var('plht_route');
+        $route = get_query_var('gt_route');
         if ($route === '' || $route === false) {
             return;
         }
-        $slug = sanitize_title((string) get_query_var('plht_slug'));
+        $slug = sanitize_title((string) get_query_var('gt_slug'));
 
-        $renderer = new PLHT_Renderer();
+        $renderer = new GT_Renderer();
         $page = $renderer->build((string) $route, $slug);
 
         if ($page === null) {
@@ -98,7 +98,7 @@ final class PLHT_Router
         // Render inside the active theme so the tracker inherits Protect
         // Lassen's own design rather than looking like a bolted-on app.
         get_header();
-        echo '<div class="plht-wrap">' . $page['body'] . '</div>';
+        echo '<div class="gt-wrap">' . $page['body'] . '</div>';
         get_footer();
         exit;
     }

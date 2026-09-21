@@ -1,6 +1,6 @@
 """Access tiers, and an honest account of what "not scrapable" can mean.
 
-The tracker is intended to become a paid product, so the data needs
+This is intended to become a paid product, so the data needs
 protecting.  It is worth being precise about what is achievable, because the
 build plan also requires SEO-indexable public pages, and those two goals pull
 in opposite directions: anything a search engine can crawl, anyone can copy.
@@ -109,7 +109,7 @@ class AccessDenied(PermissionError):
         if principal.tier == Tier.PUBLIC:
             hint = (
                 "This endpoint is part of the subscriber tier. "
-                "Contact Protect Lassen for an API key."
+                "Contact the publisher for an API key."
             )
         else:
             hint = "Your key does not include this capability."

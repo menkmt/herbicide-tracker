@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 app = FastAPI(
-    title="Protect Lassen Herbicide Tracker",
+    title="the publisher Herbicide Tracker",
     version="0.1.0",
     description=(
         "California pesticide-use reports, notices of intent and restricted-materials "

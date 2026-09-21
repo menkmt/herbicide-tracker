@@ -204,7 +204,7 @@ def run(
             )
         )
 
-    # Protect Lassen's own watchlist, applied to every chemical the tracker
+    # the publisher's own watchlist, applied to every chemical the tracker
     # knows about by name. That means the active ingredients identified in use
     # records *and* the materials named on county permits: a watchlisted
     # chemical that a county has authorised should be flagged as watchlisted
@@ -219,7 +219,7 @@ def run(
 
     watch_provenance = Provenance(
         source_type=SourceType.WATCHLIST,
-        source_name="Protect Lassen watchlist",
+        source_name="the publisher's watchlist",
         extraction_method=ExtractionMethod.HUMAN,
     )
     flag_set.extend(flags_from_watchlist(subjects, watchlist, watch_provenance))

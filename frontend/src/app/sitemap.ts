@@ -3,7 +3,7 @@ import { api } from "@/lib/api";
 
 /** Public pages are meant to be indexable, so they are listed properly. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://protectlassen.org";
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://example.org";
   const entries: MetadataRoute.Sitemap = [
     { url: `${base}/`, changeFrequency: "weekly", priority: 1 },
     { url: `${base}/herbicide-tracker`, changeFrequency: "weekly", priority: 0.9 },

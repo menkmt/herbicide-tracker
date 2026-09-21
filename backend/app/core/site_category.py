@@ -1,6 +1,6 @@
 """Classifying what kind of site an application treated.
 
-Protect Lassen's tracker is about **forestry** herbicide use.  California PURs
+this tracker is about **forestry** herbicide use.  California PURs
 cover every pesticide application in the state, the overwhelming majority of
 which is agricultural and out of scope.  Filtering is therefore not cosmetic —
 it decides what the tracker is.

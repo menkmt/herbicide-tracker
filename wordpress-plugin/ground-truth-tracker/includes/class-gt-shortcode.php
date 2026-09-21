@@ -1,6 +1,6 @@
 <?php
 /**
- * [protect_lassen_tracker] — the application grid inside any page or post.
+ * [ground_truth_tracker] — the application grid inside any page or post.
  *
  * The full pages are the primary interface; this is for dropping a filtered
  * view into an existing page, such as a county campaign page.
@@ -12,11 +12,11 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-final class PLHT_Shortcode
+final class GT_Shortcode
 {
     public static function init(): void
     {
-        add_shortcode('protect_lassen_tracker', [self::class, 'render']);
+        add_shortcode('ground_truth_tracker', [self::class, 'render']);
     }
 
     /**
@@ -33,10 +33,10 @@ final class PLHT_Shortcode
                 'limit'    => '25',
             ],
             $atts,
-            'protect_lassen_tracker'
+            'ground_truth_tracker'
         );
 
-        $data = PLHT_Client::get('/api/applications', [
+        $data = GT_Client::get('/api/applications', [
             'county'    => sanitize_title($atts['county']),
             'chemical'  => sanitize_text_field($atts['chemical']),
             'method'    => sanitize_text_field($atts['method']),
@@ -45,17 +45,17 @@ final class PLHT_Shortcode
         ]);
 
         if (is_wp_error($data)) {
-            return '<p class="plht-muted">'
-                . esc_html__('The herbicide tracker is temporarily unavailable.', 'protect-lassen-tracker')
+            return '<p class="gt-muted">'
+                . esc_html__('The herbicide tracker is temporarily unavailable.', 'ground-truth-tracker')
                 . '</p>';
         }
 
-        $renderer = new PLHT_Renderer();
-        $html = '<div class="plht-wrap">' . $renderer->grid($data['applications'] ?? []);
+        $renderer = new GT_Renderer();
+        $html = '<div class="gt-wrap">' . $renderer->grid($data['applications'] ?? []);
         $html .= sprintf(
-            '<p class="plht-small"><a href="%s">%s</a></p>',
-            esc_url(PLHT_Router::url('index')),
-            esc_html__('View the full herbicide tracker →', 'protect-lassen-tracker')
+            '<p class="gt-small"><a href="%s">%s</a></p>',
+            esc_url(GT_Router::url('index')),
+            esc_html__('View the full herbicide tracker →', 'ground-truth-tracker')
         );
         return $html . '</div>';
     }

@@ -8,7 +8,7 @@
 # Then the admin dashboard is at http://localhost:8000/admin and the public
 # site at http://localhost:3000.
 
-name: protect-lassen-tracker
+name: ground-truth-tracker
 
 services:
   db:

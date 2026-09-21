@@ -202,7 +202,7 @@ class TestMonthlyCpraSync:
         assert result.files_skipped_not_importable == 1
 
     def test_sending_records_requests_is_off_by_default(self):
-        """A CPRA request is correspondence from Protect Lassen."""
+        """A CPRA request is correspondence from the publisher."""
         client = FakeInquisitor([])
         result = run_monthly_sync(
             client, CpraSyncConfig(), last_watermark=None,

@@ -70,7 +70,7 @@ def decide_storage(origin: str, *, inquisitor_url: str | None = None) -> str:
 def retrieval_note(mode: str, *, agency: str | None = None, request: str | None = None) -> str:
     """What a page says about where the original can be obtained."""
     if mode == StorageMode.INQUISITOR:
-        parts = ["The original document is held in the Protect Lassen evidence vault"]
+        parts = ["The original document is held in the evidence vault"]
         if agency:
             parts.append(f"as produced by {agency}")
         if request:

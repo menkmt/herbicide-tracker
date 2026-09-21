@@ -4,7 +4,7 @@ import type { FlagSummary } from "@/lib/api";
  * Warning badge for a grid row.
  *
  * The label always states its own reason — "California Restricted Material"
- * or "Protect Lassen Watchlist" — because a watchlist entry is Protect
+ * or "Editorial Watchlist" — because a watchlist entry is Protect
  * Lassen's editorial judgement and must never read as a legal restriction.
  */
 export function FlagBadge({
@@ -37,7 +37,7 @@ export function FlagList({ flags }: { flags: FlagSummary | null }) {
           <div className="src">
             {flag.is_regulatory
               ? "Regulatory status, from: "
-              : "Protect Lassen editorial flag, from: "}
+              : "Editorial flag, from: "}
             {flag.source_citation}
           </div>
         </div>

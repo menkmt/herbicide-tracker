@@ -99,8 +99,8 @@ def test_restricted_chemicals_are_flagged_from_the_county_permit(
     flags = session.scalars(select(ChemicalFlagRow)).all()
     by_subject = {(f.subject_name, f.reason) for f in flags}
     assert ("2,4-D", "california_restricted_material") in by_subject
-    assert ("2,4-D", "protect_lassen_watchlist") in by_subject
-    assert ("Hexazinone", "protect_lassen_watchlist") in by_subject
+    assert ("2,4-D", "publisher_watchlist") in by_subject
+    assert ("Hexazinone", "publisher_watchlist") in by_subject
     # The watchlist entry must never be recorded as a legal restriction.
     hexazinone = session.scalar(
         select(ActiveIngredient).where(ActiveIngredient.slug == "hexazinone")

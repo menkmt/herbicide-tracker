@@ -1,8 +1,8 @@
 """Client for the Inquisitor public-records system.
 
-Inquisitor (a sibling Protect Lassen project) runs the CPRA side of this
-operation: it sends California Public Records Act requests to county
-agricultural commissioners, tracks statutory deadlines, chases non-responses,
+Inquisitor, a sibling project, runs the CPRA side of this operation: it sends
+California Public Records Act requests to county agricultural commissioners,
+tracks statutory deadlines, chases non-responses,
 and files whatever the agencies produce into an evidence vault with immutable
 originals and SHA-256 hashes.
 
