@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FlagList } from "@/components/Flags";
+import { Legend } from "@/components/Legend";
 import { ParcelMap } from "@/components/ParcelMap";
 import { ApiError, api, formatAcres, formatDateRange } from "@/lib/api";
 
@@ -113,8 +114,68 @@ export default async function ApplicationPage({ params }: Props) {
 
       <h2>Chemical warnings</h2>
       <FlagList flags={application.flags} />
+      <Legend compact />
 
-      <h2>What was applied</h2>
+      <h2>What was in the tank</h2>
+      {application.materials.active_ingredients.length === 0 &&
+      application.materials.products.length === 0 ? (
+        <p className="muted small">No products were reported on these records.</p>
+      ) : (
+        <div className="materials">
+          {application.materials.active_ingredients.map((ingredient) => (
+            <div key={ingredient.slug} className="material">
+              <div className="ai">
+                <Link href={ingredient.url}>{ingredient.name}</Link>{" "}
+                {ingredient.is_california_restricted && (
+                  <span className="badge red">California Restricted Material</span>
+                )}{" "}
+                {ingredient.is_watchlisted && (
+                  <span className="badge red">Watchlist</span>
+                )}
+              </div>
+              <div className="prod">
+                Applied as {ingredient.products.join(", ")}
+              </div>
+            </div>
+          ))}
+
+          {application.materials.products
+            .filter((product) => product.active_ingredients.length === 0)
+            .map((product) => (
+              <div key={product.name} className="material">
+                <div className="ai">{product.name}</div>
+                <div className="unidentified">
+                  {product.identified
+                    ? "Active ingredients for this product have not been recorded yet."
+                    : "This product has not yet been identified from its registration number, so its active ingredients are unknown."}
+                </div>
+              </div>
+            ))}
+        </div>
+      )}
+
+      {application.materials.adjuvants.length > 0 && (
+        <>
+          <h3>Other materials added to the tank</h3>
+          <p className="small muted">
+            These are not pesticides and are not counted as active ingredients, but they
+            were applied to the same ground.
+          </p>
+          <div className="materials">
+            {application.materials.adjuvants.map((adjuvant) => (
+              <div key={adjuvant.name} className="material additive">
+                <div className="ai">
+                  {adjuvant.name}{" "}
+                  <span className="badge plain">{adjuvant.type_label}</span>
+                </div>
+                <div className="what">{adjuvant.description}</div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <h2>Reported use records</h2>
       <p className="small muted">
         {application.record_count} pesticide use report
         {application.record_count === 1 ? "" : "s"}, {totalProducts.size} product
@@ -145,9 +206,17 @@ export default async function ApplicationPage({ params }: Props) {
               </td>
               <td className="small">
                 {record.products.map((product, index) => (
-                  <div key={index}>
+                  <div key={index} style={{ marginBottom: 6 }}>
                     {product.name}
                     {product.quantity !== null && ` — ${product.quantity} ${product.units ?? ""}`}
+                    {product.active_ingredients.length > 0 && (
+                      <div className="muted">
+                        {product.active_ingredients.join(", ")}
+                      </div>
+                    )}
+                    {product.is_adjuvant && product.adjuvant_label && (
+                      <div className="muted">{product.adjuvant_label} — not a pesticide</div>
+                    )}
                     {product.epa_reg_no && (
                       <div className="muted">EPA reg. {product.epa_reg_no}</div>
                     )}

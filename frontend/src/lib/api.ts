@@ -55,6 +55,37 @@ export interface FlagSummary {
   }>;
 }
 
+export interface ActiveIngredientRef {
+  name: string;
+  slug: string;
+  url: string;
+  is_california_restricted: boolean;
+  is_watchlisted: boolean;
+  products: string[];
+}
+
+export interface ProductRef {
+  name: string;
+  epa_reg_no: string | null;
+  registrant: string | null;
+  active_ingredients: string[];
+  identified: boolean;
+}
+
+export interface AdjuvantRef {
+  name: string;
+  epa_reg_no: string | null;
+  type: string | null;
+  type_label: string;
+  description: string;
+}
+
+export interface Materials {
+  active_ingredients: ActiveIngredientRef[];
+  products: ProductRef[];
+  adjuvants: AdjuvantRef[];
+}
+
 export interface ApplicationRow {
   slug: string;
   title: string;
@@ -70,6 +101,9 @@ export interface ApplicationRow {
   is_planned: boolean;
   record_count: number;
   chemicals: string[];
+  active_ingredients: string[];
+  adjuvants: string[];
+  materials: Materials;
   flag_level: string | null;
   flag_headline: string | null;
   has_regulatory_restriction: boolean;
@@ -110,6 +144,11 @@ export interface ApplicationDetail extends ApplicationRow {
       epa_reg_no: string | null;
       quantity: number | null;
       units: string | null;
+      active_ingredients: string[];
+      is_adjuvant: boolean;
+      adjuvant_type: string | null;
+      adjuvant_label: string | null;
+      identified: boolean;
     }>;
   }>;
 }

@@ -145,3 +145,28 @@ table.records th { color: var(--ink-soft); font-size: .74rem; text-transform: up
   .grid-table td { display: block; border: 0; }
   .grid-table td:not(:first-child) a { padding-top: 0; }
 }
+
+/* --- colour key --------------------------------------------------------- */
+
+.legend { margin: 16px 0; }
+.legend summary { cursor: pointer; list-style: none; }
+.legend summary::-webkit-details-marker { display: none; }
+.legend summary::before { content: "▸ "; color: var(--ink-soft); }
+.legend[open] summary::before { content: "▾ "; }
+.legend-grid {
+  display: grid; gap: 14px; margin-top: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+}
+.legend-grid p { margin: 6px 0 0; font-size: .86rem; color: var(--ink-soft); }
+
+/* --- materials ---------------------------------------------------------- */
+
+.materials { display: grid; gap: 10px; }
+.material {
+  border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px;
+}
+.material .ai { font-weight: 600; }
+.material .prod { font-size: .86rem; color: var(--ink-soft); }
+.material.additive { background: #fafbfa; }
+.material .what { font-size: .84rem; color: var(--ink-soft); margin-top: 4px; }
+.unidentified { color: var(--orange); font-size: .84rem; }

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ApplicationGrid } from "@/components/ApplicationGrid";
+import { Legend } from "@/components/Legend";
 import { api } from "@/lib/api";
 
 interface Props {
@@ -50,6 +51,7 @@ export default async function CountyPage({ params, searchParams }: Props) {
         <Link href={`/map?county=${county}`}>View these applications on the map →</Link>
       </p>
 
+      <Legend compact />
       <ApplicationGrid rows={data.applications} />
 
       {data.pages > 1 && (

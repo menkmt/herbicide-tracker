@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ApplicationGrid } from "@/components/ApplicationGrid";
+import { Legend } from "@/components/Legend";
 import { api } from "@/lib/api";
 
 export const metadata = {
@@ -98,6 +99,7 @@ export default async function AllApplicationsPage({ searchParams }: Props) {
         <Link href="/herbicide-tracker" className="small">Clear</Link>
       </form>
 
+      <Legend compact />
       <ApplicationGrid rows={data.applications} />
 
       {data.pages > 1 && (

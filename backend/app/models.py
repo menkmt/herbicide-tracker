@@ -156,7 +156,29 @@ class SourceFile(Base, TimestampMixin):
     sha256: Mapped[str] = mapped_column(String(64), nullable=False)
     byte_size: Mapped[int | None] = mapped_column(Integer)
     content_type: Mapped[str | None] = mapped_column(String(128))
-    storage_key: Mapped[str] = mapped_column(Text, nullable=False)
+    #: Where the original bytes live.
+    #:
+    #: ``local``      the tracker holds the file in its own object storage.
+    #: ``inquisitor`` the original stays in Inquisitor's evidence vault, which
+    #:                already keeps immutable originals with hashes and a
+    #:                chain of custody. Duplicating multi-gigabyte scans into
+    #:                a second store would give two systems of record for the
+    #:                same document and no benefit.
+    #: ``none``       the original is no longer held anywhere reachable.
+    storage_mode: Mapped[str] = mapped_column(String(16), default="local")
+    #: Empty when the original is held elsewhere.
+    storage_key: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    #: URL the original can be fetched from when it lives in Inquisitor.
+    origin_url: Mapped[str | None] = mapped_column(Text)
+    #: The document's text, as extracted or OCR'd.
+    #:
+    #: Kept in the database because it is small — a 6MB scanned permit yields
+    #: about 25KB of text — and because it is what the tracker actually needs
+    #: at read time: searching, citing a passage, or showing the paragraph a
+    #: published fact came from. Re-OCRing a scan to answer a page request
+    #: would take a minute; reading a text column takes a millisecond.
+    extracted_text: Mapped[str | None] = mapped_column(Text)
+    text_bytes: Mapped[int | None] = mapped_column(Integer)
     county_id: Mapped[int | None] = mapped_column(ForeignKey("counties.id"))
     #: Which extraction profile read it.
     profile: Mapped[str | None] = mapped_column(String(64))
@@ -554,6 +576,9 @@ class Product(Base, TimestampMixin):
     signal_word: Mapped[str | None] = mapped_column(String(32))
     density_lb_per_gallon: Mapped[float | None] = mapped_column(Float)
     is_adjuvant: Mapped[bool] = mapped_column(Boolean, default=False)
+    #: surfactant | crop_oil | marker_dye | drift_control | ... See
+    #: app.chemicals.adjuvants. Null for products that are pesticides.
+    adjuvant_type: Mapped[str | None] = mapped_column(String(32))
     federal_restricted_use: Mapped[bool | None] = mapped_column(Boolean)
     california_restricted: Mapped[bool | None] = mapped_column(Boolean)
     #: verified | seed | unresolved — gates automatic publication.

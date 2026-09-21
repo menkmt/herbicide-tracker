@@ -19,7 +19,7 @@ export function ApplicationGrid({ rows }: { rows: ApplicationRow[] }) {
           <th>Date</th>
           <th>Project / property</th>
           <th className="num">Acres</th>
-          <th>Chemicals</th>
+          <th>Chemicals applied</th>
           <th>Method</th>
         </tr>
       </thead>
@@ -54,8 +54,29 @@ export function ApplicationGrid({ rows }: { rows: ApplicationRow[] }) {
             </td>
             <td>
               <Link href={row.url}>
-                {row.chemicals.slice(0, 3).join(", ")}
-                {row.chemicals.length > 3 && ` +${row.chemicals.length - 3} more`}
+                {/* The active ingredient is what people search for and what the
+                    chemical pages are about; the brand name is secondary. */}
+                {row.active_ingredients.length > 0 ? (
+                  <>
+                    <span className="title">
+                      {row.active_ingredients.slice(0, 4).join(", ")}
+                      {row.active_ingredients.length > 4 &&
+                        ` +${row.active_ingredients.length - 4} more`}
+                    </span>
+                    <div className="sub">{row.chemicals.slice(0, 3).join(", ")}</div>
+                  </>
+                ) : (
+                  <>
+                    {row.chemicals.slice(0, 3).join(", ")}
+                    {row.chemicals.length > 3 && ` +${row.chemicals.length - 3} more`}
+                  </>
+                )}
+                {row.adjuvants.length > 0 && (
+                  <div className="sub">
+                    + {row.adjuvants.length} tank additive
+                    {row.adjuvants.length === 1 ? "" : "s"}
+                  </div>
+                )}
                 {row.flag_headline && (
                   <div className="sub">
                     <FlagBadge level={row.flag_level} headline={row.flag_headline} />

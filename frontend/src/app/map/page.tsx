@@ -1,3 +1,4 @@
+import { Legend } from "@/components/Legend";
 import { ParcelMap } from "@/components/ParcelMap";
 import { api } from "@/lib/api";
 
@@ -42,6 +43,8 @@ export default async function MapPage({ searchParams }: Props) {
         </div>
         <button type="submit" className="primary">Update map</button>
       </form>
+
+      <Legend compact />
 
       <ParcelMap source={`/api/map/applications?${query.toString()}`} tall />
 

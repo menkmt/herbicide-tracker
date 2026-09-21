@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from app.core.coverage import DocumentKind
-from app.extraction import permit, pur_form, tabular
+from app.extraction import enforcement_doc, investigation, permit, pur_form, tabular
 from app.extraction.base import DataIssue, ExtractionResult
 from app.extraction.text_source import load_text, sha256_file
 
@@ -61,6 +61,20 @@ PROFILES: list[Profile] = [
         suffixes=(".docx", ".pdf", ".txt"),
     ),
     Profile(
+        name=investigation.PROFILE_NAME,
+        document_kind=DocumentKind.INVESTIGATION,
+        extract=investigation.extract,
+        sniff_text=investigation.sniff_text,
+        suffixes=(".pdf", ".docx", ".txt"),
+    ),
+    Profile(
+        name=enforcement_doc.PROFILE_NAME,
+        document_kind=DocumentKind.ENFORCEMENT,
+        extract=enforcement_doc.extract,
+        sniff_text=enforcement_doc.sniff_text,
+        suffixes=(".pdf", ".docx", ".txt"),
+    ),
+    Profile(
         name=pur_form.PROFILE_NAME,
         document_kind=DocumentKind.USE_REPORT,
         extract=pur_form.extract,
@@ -80,6 +94,9 @@ class Detection:
     score: float
     reason: str
     scores: dict[str, float]
+    #: The document's text, when detection had to read it. Carried so the
+    #: importer can store the text without OCR'ing a scan for a second time.
+    text: str | None = None
 
     @property
     def recognised(self) -> bool:
@@ -123,6 +140,7 @@ def detect(path: str | Path, *, allow_ocr: bool = True) -> Detection:
         try:
             document = load_text(path, allow_ocr=allow_ocr)
             sample = document.text[:DETECTION_SAMPLE_CHARS]
+            full_text = document.text
         except Exception as exc:
             return Detection(None, 0.0, f"the file could not be read: {exc}", scores)
         for profile in text_profiles:
@@ -148,6 +166,7 @@ def detect(path: str | Path, *, allow_ocr: bool = True) -> Detection:
         scores[name],
         f"recognised as a {name.replace('_', ' ')}",
         scores,
+        text=locals().get("full_text"),
     )
 
 
@@ -195,6 +214,8 @@ def extract_file(
 
     result = profile.extract(path, **kwargs)
     result.profile = profile.name
+    if result.document_text is None:
+        result.document_text = detection.text
     result.notes.insert(0, f"{detection.reason} (confidence {detection.score:.2f})")
     for record in result.records:
         record.check_coverage()

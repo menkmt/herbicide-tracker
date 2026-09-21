@@ -66,7 +66,9 @@ class FlagReason:
     LABELS = {
         CALIFORNIA_RESTRICTED: "RED — California Restricted Material",
         FEDERAL_RESTRICTED_USE: "RED — Federal Restricted Use Pesticide",
-        WATCHLIST: "RED — Protect Lassen Watchlist",
+        # Filled from configuration at import time so a deployment run by
+        # another organisation does not display Protect Lassen's name.
+        WATCHLIST: "RED — {watchlist}",
         GROUNDWATER_PROTECTION: "ORANGE — Groundwater protection listing",
         LEACHING: "ORANGE — Leaching and soil mobility concern",
         AQUATIC_TOXICITY: "ORANGE — Aquatic toxicity",
@@ -114,7 +116,11 @@ class ChemicalFlag:
 
     @property
     def label(self) -> str:
-        return FlagReason.LABELS[self.reason]
+        from app.branding import get_brand
+
+        return FlagReason.LABELS[self.reason].format(
+            watchlist=get_brand().watchlist_label
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {

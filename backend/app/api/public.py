@@ -40,6 +40,85 @@ router = APIRouter(prefix="/api", tags=["public"])
 PUBLISHED = ApplicationCluster.status == "published"
 
 
+def _materials(session: Session, record_ids: list[int]) -> dict[str, list]:
+    """Everything that went in the tank, split by what kind of thing it is.
+
+    The public cares about the chemical, not the brand: two products with
+    different names can be the same active ingredient. So ingredients are
+    listed first, with the products they came from, and tank additives —
+    surfactants, crop oils, marker dyes — are listed separately because they
+    are not pesticides and must not be read as if they were.
+    """
+    if not record_ids:
+        return {"active_ingredients": [], "products": [], "adjuvants": []}
+
+    lines = session.scalars(
+        select(PurProduct).where(PurProduct.record_id.in_(record_ids))
+    ).all()
+
+    ingredients: dict[str, dict] = {}
+    products: dict[str, dict] = {}
+    adjuvants: dict[str, dict] = {}
+
+    for line in lines:
+        product = session.get(Product, line.product_id) if line.product_id else None
+        name = line.product_name or line.base_epa_reg_no or "(unnamed product)"
+
+        if product is not None and product.is_adjuvant:
+            from app.chemicals.adjuvants import AdjuvantType
+
+            adjuvants.setdefault(
+                name,
+                {
+                    "name": name,
+                    "epa_reg_no": line.epa_reg_no,
+                    "type": product.adjuvant_type,
+                    "type_label": AdjuvantType.label(product.adjuvant_type or "other"),
+                    "description": AdjuvantType.describe(product.adjuvant_type or "other"),
+                },
+            )
+            continue
+
+        entry = products.setdefault(
+            name,
+            {
+                "name": name,
+                "epa_reg_no": line.epa_reg_no,
+                "registrant": product.registrant if product else None,
+                "active_ingredients": [],
+                "identified": product is not None and product.verification != "unresolved",
+            },
+        )
+
+        if product is None:
+            continue
+        for link in product.ingredients:
+            ingredient = session.get(ActiveIngredient, link.ingredient_id)
+            if ingredient is None:
+                continue
+            if ingredient.name not in entry["active_ingredients"]:
+                entry["active_ingredients"].append(ingredient.name)
+            summary = ingredients.setdefault(
+                ingredient.name,
+                {
+                    "name": ingredient.name,
+                    "slug": ingredient.slug,
+                    "url": f"/chemical/{ingredient.slug}/",
+                    "is_california_restricted": ingredient.is_california_restricted,
+                    "is_watchlisted": ingredient.is_watchlisted,
+                    "products": [],
+                },
+            )
+            if name not in summary["products"]:
+                summary["products"].append(name)
+
+    return {
+        "active_ingredients": sorted(ingredients.values(), key=lambda i: i["name"]),
+        "products": sorted(products.values(), key=lambda p: p["name"]),
+        "adjuvants": sorted(adjuvants.values(), key=lambda a: a["name"]),
+    }
+
+
 def _cluster_summary(session: Session, cluster: ApplicationCluster) -> dict[str, Any]:
     """The row shape the public grid renders."""
     member_ids = [
@@ -48,15 +127,8 @@ def _cluster_summary(session: Session, cluster: ApplicationCluster) -> dict[str,
             select(ClusterRecord).where(ClusterRecord.cluster_id == cluster.id)
         ).all()
     ]
-    products = (
-        session.scalars(
-            select(PurProduct.product_name)
-            .where(PurProduct.record_id.in_(member_ids))
-            .distinct()
-        ).all()
-        if member_ids
-        else []
-    )
+    materials = _materials(session, member_ids)
+    products = [p["name"] for p in materials["products"]]
     county = session.get(County, cluster.county_id) if cluster.county_id else None
     flags = cluster.flags or {}
     return {
@@ -73,7 +145,12 @@ def _cluster_summary(session: Session, cluster: ApplicationCluster) -> dict[str,
         "method": cluster.method,
         "is_planned": cluster.is_planned,
         "record_count": len(member_ids),
+        # Active ingredients lead, because that is the chemical people search
+        # for; product brand names follow. Tank additives are listed apart.
+        "active_ingredients": [i["name"] for i in materials["active_ingredients"]],
         "chemicals": sorted(p for p in products if p),
+        "adjuvants": [a["name"] for a in materials["adjuvants"]],
+        "materials": materials,
         "flag_level": flags.get("highest_level"),
         "flag_headline": flags.get("headline"),
         "has_regulatory_restriction": flags.get("has_regulatory_restriction", False),
@@ -258,6 +335,7 @@ def get_application(slug: str, session: Session = Depends(get_session),
     summary = _cluster_summary(session, cluster)
     summary.update(
         {
+            "materials": _materials(session, member_ids),
             "mtrs": sorted({r.mtrs for r in records if r.mtrs}),
             "site_ids": sorted({r.site_id for r in records if r.site_id}),
             "permit_numbers": sorted({r.permit_number for r in records if r.permit_number}),
@@ -280,12 +358,7 @@ def get_application(slug: str, session: Session = Depends(get_session),
                     "treated_units": r.treated_units,
                     "commodity": r.commodity,
                     "products": [
-                        {
-                            "name": p.product_name,
-                            "epa_reg_no": p.epa_reg_no,
-                            "quantity": float(p.quantity) if p.quantity is not None else None,
-                            "units": p.quantity_units,
-                        }
+                        _product_line(session, p)
                         for p in session.scalars(
                             select(PurProduct).where(PurProduct.record_id == r.id)
                         ).all()
@@ -296,6 +369,37 @@ def get_application(slug: str, session: Session = Depends(get_session),
         }
     )
     return summary
+
+
+def _product_line(session: Session, line: PurProduct) -> dict[str, Any]:
+    """One reported product, with what it actually contains."""
+    from app.chemicals.adjuvants import AdjuvantType
+
+    product = session.get(Product, line.product_id) if line.product_id else None
+    ingredients: list[str] = []
+    if product is not None:
+        for link in product.ingredients:
+            ingredient = session.get(ActiveIngredient, link.ingredient_id)
+            if ingredient is not None:
+                ingredients.append(ingredient.name)
+
+    return {
+        "name": line.product_name,
+        "epa_reg_no": line.epa_reg_no,
+        "quantity": float(line.quantity) if line.quantity is not None else None,
+        "units": line.quantity_units,
+        "active_ingredients": ingredients,
+        "is_adjuvant": bool(product and product.is_adjuvant),
+        "adjuvant_type": product.adjuvant_type if product else None,
+        "adjuvant_label": (
+            AdjuvantType.label(product.adjuvant_type or "other")
+            if product and product.is_adjuvant
+            else None
+        ),
+        # Says plainly when the tracker has not yet identified what a product
+        # contains, rather than presenting an empty list as "no ingredients".
+        "identified": bool(product and product.verification != "unresolved"),
+    }
 
 
 @router.get("/chemicals")

@@ -59,6 +59,7 @@ from app.models import (
     PurRecord as PurRecordRow,
 )
 from app.pipeline import chemicals_stage
+from app.pipeline.document_text import decide_storage, prepare_text
 from app.pipeline.storage import SourceStorage, get_storage
 
 logger = logging.getLogger(__name__)
@@ -455,13 +456,26 @@ def ingest_files(
                 summary.files.append(outcome)
                 continue
 
-            storage_key = storage.put(path, sha256=digest, filename=path.name)
             metadata = (cpra_metadata or {}).get(path.name, {})
+            # Where Inquisitor already holds the original under a documented
+            # chain of custody, the tracker keeps a reference and the text
+            # rather than a second copy of the bytes.
+            storage_mode = decide_storage(origin, inquisitor_url=metadata.get("origin_url"))
+            storage_key = (
+                storage.put(path, sha256=digest, filename=path.name)
+                if storage_mode == "local"
+                else ""
+            )
+            stored_text = prepare_text(getattr(result, "document_text", None))
             source_file = SourceFile(
                 filename=path.name,
                 sha256=digest,
                 byte_size=path.stat().st_size,
+                storage_mode=storage_mode,
                 storage_key=storage_key,
+                origin_url=metadata.get("origin_url"),
+                extracted_text=stored_text.text if stored_text else None,
+                text_bytes=stored_text.byte_size if stored_text else None,
                 profile=result.profile,
                 document_kind=(
                     DocumentKind.PERMIT if result.permits else DocumentKind.USE_REPORT

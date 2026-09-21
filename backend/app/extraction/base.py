@@ -495,6 +495,14 @@ class ExtractionResult:
     profile: str | None = None
     records: list[PurRecord] = field(default_factory=list)
     permits: list[PermitRecord] = field(default_factory=list)
+    #: Enforcement documents (NOPAs, decisions). Typed as Any to avoid a
+    #: circular import; see app.extraction.enforcement_doc.
+    enforcement: list[Any] = field(default_factory=list)
+    #: County investigation reports; see app.extraction.investigation.
+    investigations: list[Any] = field(default_factory=list)
+    #: The document's extracted text, kept so the importer can store it
+    #: without reading — or OCR'ing — the original a second time.
+    document_text: str | None = None
     #: Non-fatal problems with the file as a whole (unreadable page, etc.).
     issues: list[DataIssue] = field(default_factory=list)
     #: Free-form notes about how the file was read, shown in the import summary.
@@ -517,6 +525,8 @@ class ExtractionResult:
             "profile": self.profile,
             "records": [r.to_dict() for r in self.records],
             "permits": [p.to_dict() for p in self.permits],
+            "enforcement": [e.to_dict() for e in self.enforcement],
+            "investigations": [i.to_dict() for i in self.investigations],
             "issues": [i.to_dict() for i in self.issues],
             "notes": list(self.notes),
             "record_count": self.record_count,

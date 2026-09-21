@@ -7,14 +7,11 @@ the Next.js front end is another, and a subscriber's own tooling is a third.
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-
-from pathlib import Path
-
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from app.api import admin, geo, public
 from app.config import get_settings

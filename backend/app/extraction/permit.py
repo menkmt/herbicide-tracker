@@ -671,6 +671,7 @@ def extract(
     document = load_text(path, allow_ocr=allow_ocr)
     result = ExtractionResult(source_name=name, sha256=sha256, profile=PROFILE_NAME)
     result.notes.extend(document.notes)
+    result.document_text = document.text
 
     if not document.text.strip():
         result.issues.append(

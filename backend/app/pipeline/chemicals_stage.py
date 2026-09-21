@@ -20,6 +20,7 @@ from slugify import slugify
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.chemicals.adjuvants import classify_adjuvant
 from app.chemicals.flags import (
     ChemicalFlag,
     FlagLevel,
@@ -88,7 +89,16 @@ def _persist_product(session: Session, resolved: ResolvedProduct) -> Product | N
         row.density_lb_per_gallon = (
             resolved.density_lb_per_gallon or row.density_lb_per_gallon
         )
-        row.is_adjuvant = resolved.is_adjuvant
+        # A surfactant, crop oil or marker dye is part of what was actually
+        # applied, so it is identified and shown — but never counted as an
+        # active ingredient.
+        classification = classify_adjuvant(
+            resolved.name,
+            known_adjuvant=resolved.is_adjuvant or None,
+            has_active_ingredients=bool(resolved.ingredients),
+        )
+        row.is_adjuvant = classification.is_adjuvant
+        row.adjuvant_type = classification.adjuvant_type
         row.federal_restricted_use = (
             resolved.federal_restricted_use
             if resolved.federal_restricted_use is not None

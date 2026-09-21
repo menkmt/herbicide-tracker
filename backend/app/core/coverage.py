@@ -39,19 +39,35 @@ class DocumentKind:
         A restricted-materials permit: the county's multi-year authorisation
         naming the operator, the permitted materials, and every site that may
         be treated.  It is context for applications rather than an application.
+
+    ``enforcement``
+        A notice of proposed action, decision or order. Note that a proposed
+        action is an **allegation**, not a finding — see
+        :mod:`app.enforcement.model`.
+
+    ``investigation``
+        A county investigation report into a complaint, which states what was
+        sampled, what was found, and who the commissioner concluded to cite.
     """
 
     USE_REPORT = "use_report"
     NOTICE_OF_INTENT = "notice_of_intent"
     PERMIT = "permit"
+    #: A county enforcement document: a notice of proposed action, decision
+    #: or order against a licensee.
+    ENFORCEMENT = "enforcement"
+    #: A county investigation report into a complaint.
+    INVESTIGATION = "investigation"
 
-    ALL = (USE_REPORT, NOTICE_OF_INTENT, PERMIT)
+    ALL = (USE_REPORT, NOTICE_OF_INTENT, PERMIT, ENFORCEMENT, INVESTIGATION)
 
     #: How each kind is labelled for the public.
     LABELS = {
         USE_REPORT: "Reported application",
         NOTICE_OF_INTENT: "Planned application (notice of intent)",
         PERMIT: "Restricted materials permit",
+        ENFORCEMENT: "Enforcement action",
+        INVESTIGATION: "Investigation report",
     }
 
     @classmethod
