@@ -27,6 +27,8 @@ class SourceType:
     PUR_USE_RECORD = "pur_use_record"
     RESTRICTED_MATERIALS_PERMIT = "restricted_materials_permit"
     COUNTY_PERMIT = "county_permit"
+    #: Obtained from an agency through a CPRA request run by Inquisitor.
+    CPRA_PRODUCTION = "cpra_production"
     DPR_PRODUCT = "dpr_product"
     DPR_LICENSE = "dpr_license"
     EPA_REGISTRATION = "epa_registration"

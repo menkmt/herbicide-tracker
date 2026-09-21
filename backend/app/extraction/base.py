@@ -20,6 +20,7 @@ from datetime import date, datetime
 from typing import Any
 
 from app.core.confidence import Confidence
+from app.core.coverage import DocumentKind, coverage_note, in_coverage
 from app.core.provenance import Provenance
 from app.core.siteid import DecodedSiteId
 
@@ -78,6 +79,8 @@ class IssueCode:
     EXPIRED_REGISTRATION = "expired_registration"
     LOW_OCR_CONFIDENCE = "low_ocr_confidence"
     UNPARSED_SECTION = "unparsed_section"
+    OUT_OF_COVERAGE = "out_of_coverage"
+    NOI_WITHOUT_OUTCOME = "noi_without_outcome"
 
 
 @dataclass
@@ -175,6 +178,10 @@ class PurRecord:
     """
 
     # --- identity -------------------------------------------------------
+    #: Which of the three collected document kinds this record is.  A notice
+    #: of intent describes a *planned* application and must never be presented
+    #: as one that happened.
+    record_kind: str = DocumentKind.USE_REPORT
     document_number: str | None = None
     permit_number: str | None = None
     county_name: str | None = None
@@ -215,6 +222,9 @@ class PurRecord:
     # --- bookkeeping ------------------------------------------------------
     submittal_status: str | None = None
     school_notification: str | None = None
+    #: NOIs only: the document number of the use report that later confirmed
+    #: this application actually took place, when one has been matched.
+    fulfilled_by_document: str | None = None
     #: Per-field provenance, keyed by attribute name.
     field_sources: dict[str, Provenance] = field(default_factory=dict)
     issues: list[DataIssue] = field(default_factory=list)
@@ -231,6 +241,45 @@ class PurRecord:
     @property
     def needs_review(self) -> bool:
         return any(i.severity == "review" for i in self.issues)
+
+    @property
+    def is_notice_of_intent(self) -> bool:
+        return self.record_kind == DocumentKind.NOTICE_OF_INTENT
+
+    @property
+    def is_planned(self) -> bool:
+        """True when this describes an intended application, not a reported one.
+
+        An NOI that has been matched to a subsequent use report is no longer
+        merely planned — the use report is the evidence it happened.
+        """
+        return self.is_notice_of_intent and not self.fulfilled_by_document
+
+    @property
+    def kind_label(self) -> str:
+        return DocumentKind.label(self.record_kind)
+
+    @property
+    def in_coverage(self) -> bool:
+        """Whether this record falls inside the tracker's published window."""
+        start, _ = self.date_range
+        return in_coverage(start)
+
+    def check_coverage(self) -> None:
+        """Flag the record when it falls outside the published window.
+
+        Out-of-scope records are kept — the source document is preserved and
+        the record stays queryable — but they are held back from publication
+        with an explicit reason rather than silently dropped.
+        """
+        start, _ = self.date_range
+        note = coverage_note(start)
+        if note is not None and start is not None:
+            self.add_issue(
+                IssueCode.OUT_OF_COVERAGE,
+                f"outside the tracker's coverage: {note}",
+                field_name="application_date",
+            )
 
     @property
     def date_range(self) -> tuple[date | None, date | None]:
@@ -263,6 +312,11 @@ class PurRecord:
     def to_dict(self) -> dict[str, Any]:
         start, end = self.date_range
         return {
+            "record_kind": self.record_kind,
+            "kind_label": self.kind_label,
+            "is_planned": self.is_planned,
+            "fulfilled_by_document": self.fulfilled_by_document,
+            "in_coverage": self.in_coverage,
             "document_number": self.document_number,
             "permit_number": self.permit_number,
             "county_name": self.county_name,
