@@ -12,6 +12,10 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from pathlib import Path
+
+from fastapi.responses import FileResponse
+
 from app.api import admin, geo, public
 from app.config import get_settings
 from app.core.access import AccessDenied
@@ -69,6 +73,24 @@ async def security_headers(request: Request, call_next):
     if remaining is not None:
         response.headers["X-RateLimit-Remaining"] = str(remaining)
     return response
+
+
+ADMIN_UI = Path(__file__).resolve().parent / "admin_ui" / "index.html"
+
+
+@app.get("/admin", tags=["admin"], include_in_schema=False)
+def admin_dashboard() -> FileResponse:
+    """The drag-and-drop import dashboard.
+
+    Served as a single static page rather than a second front end: the
+    administrator's whole job is drop files, read the summary, resolve the
+    exceptions and publish, and a build step would add nothing to that.
+
+    The page itself is unauthenticated because it contains no data — every
+    action it performs carries the administrator token, which is held in the
+    browser tab and never stored.
+    """
+    return FileResponse(ADMIN_UI, headers={"X-Robots-Tag": "noindex, nofollow"})
 
 
 @app.get("/healthz", tags=["meta"])

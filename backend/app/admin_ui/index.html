@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Herbicide Tracker — Administration</title>
+<style>
+  :root {
+    --ink:#1b2a24; --soft:#55635c; --line:#d8ded9; --bg:#f7f9f8; --panel:#fff;
+    --forest:#2f5d46; --forest-dark:#234534; --red:#b3261e; --amber:#a35a09;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+       color:var(--ink);background:var(--bg);line-height:1.5}
+  header{background:var(--forest-dark);color:#eef3f0;padding:14px 0}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+  h1{font-size:1.3rem;margin:0}
+  h2{font-size:1.05rem;margin:26px 0 10px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px;margin-top:16px}
+  #drop{border:2px dashed var(--line);border-radius:10px;padding:44px 20px;text-align:center;
+        background:#fff;transition:.15s;cursor:pointer}
+  #drop.over{border-color:var(--forest);background:#f0f6f2}
+  #drop p{margin:6px 0;color:var(--soft)}
+  #drop strong{font-size:1.05rem;color:var(--ink)}
+  button{font:inherit;padding:9px 16px;border-radius:6px;border:1px solid var(--forest);
+         background:var(--forest);color:#fff;cursor:pointer}
+  button.ghost{background:#fff;color:var(--forest)}
+  button[disabled]{opacity:.5;cursor:default}
+  input,select{font:inherit;padding:8px;border:1px solid var(--line);border-radius:6px}
+  ul.files{list-style:none;padding:0;margin:14px 0 0;font-size:.9rem}
+  ul.files li{padding:5px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px}
+  pre.summary{background:#0f1a15;color:#d7e6dd;padding:16px;border-radius:8px;overflow:auto;
+              font-size:.86rem;line-height:1.5;white-space:pre-wrap}
+  table{width:100%;border-collapse:collapse;font-size:.9rem}
+  th{text-align:left;font-size:.74rem;text-transform:uppercase;letter-spacing:.05em;
+     color:var(--soft);padding:8px;border-bottom:1px solid var(--line)}
+  td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+  .pill{display:inline-block;font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:100px;
+        background:#eef1ef;color:var(--soft)}
+  .pill.review{background:#fdf3e6;color:var(--amber)}
+  .pill.ready{background:#eaf4ee;color:var(--forest)}
+  .muted{color:var(--soft)}
+  .small{font-size:.86rem}
+  .row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+  .err{color:var(--red)}
+  .stat{display:inline-block;margin-right:22px}
+  .stat b{font-size:1.4rem;display:block}
+  .stat span{font-size:.74rem;text-transform:uppercase;letter-spacing:.05em;color:var(--soft)}
+</style>
+</head>
+<body>
+<header><div class="wrap"><h1>Herbicide Tracker — Administration</h1></div></header>
+<div class="wrap">
+
+  <div class="panel">
+    <div class="row">
+      <div>
+        <label class="small muted" for="token">Administrator token</label><br />
+        <input id="token" type="password" size="32" placeholder="TRACKER_ADMIN_TOKEN" />
+      </div>
+      <div>
+        <label class="small muted" for="county">County</label><br />
+        <input id="county" value="Lassen" size="14" />
+      </div>
+      <div>
+        <label class="small muted" for="label">Batch label (optional)</label><br />
+        <input id="label" size="24" placeholder="e.g. Lassen CPRA response, Sept 2026" />
+      </div>
+      <button class="ghost" id="refresh">Refresh queue</button>
+    </div>
+    <p class="small muted" style="margin-bottom:0">
+      The token is held in this browser tab only and is never stored.
+    </p>
+  </div>
+
+  <h2>Import</h2>
+  <div id="drop">
+    <strong>Drop PUR files here</strong>
+    <p>Pesticide use reports, notices of intent and restricted materials permits.</p>
+    <p class="small">Spreadsheets, CSV, tab-separated exports, Word permits, PDFs — including scans.
+       The file type is detected from its contents, so nothing needs sorting first.</p>
+    <input id="picker" type="file" multiple hidden />
+  </div>
+  <ul class="files" id="filelist"></ul>
+  <div class="row" style="margin-top:14px">
+    <button id="import" disabled>Import</button>
+    <span id="status" class="small muted"></span>
+  </div>
+
+  <div id="result" style="display:none">
+    <h2>Import summary</h2>
+    <pre class="summary" id="summary"></pre>
+  </div>
+
+  <h2>Review queue</h2>
+  <div class="panel" id="queue"><p class="muted small">Enter a token and press Refresh queue.</p></div>
+
+  <h2>Publish</h2>
+  <div class="panel">
+    <p class="small muted" style="margin-top:0">
+      Publishing makes an application visible on the public site. Only applications the
+      pipeline marked <em>ready</em> are published here; anything in review stays held back
+      until a person resolves it.
+    </p>
+    <button id="publish">Publish everything marked ready</button>
+    <span id="publishStatus" class="small muted"></span>
+  </div>
+
+  <p class="small muted" style="margin:30px 0">
+    Every action here is recorded in the audit log with who did it, when, and the previous value.
+  </p>
+</div>
+
+<script>
+// Deliberately dependency-free: this screen has to work on a slow connection
+// in a county office, and a build step would add nothing.
+const $ = (id) => document.getElementById(id);
+let files = [];
+
+const token = () => $("token").value.trim();
+const headers = () => (token() ? { "X-API-Key": token() } : {});
+
+function renderFiles() {
+  $("filelist").innerHTML = files
+    .map((f) => `<li><span>${escapeHtml(f.name)}</span><span class="muted">${fmtSize(f.size)}</span></li>`)
+    .join("");
+  $("import").disabled = files.length === 0;
+}
+
+function fmtSize(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + " KB";
+  return (bytes / 1024 / 1024).toFixed(1) + " MB";
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
+const drop = $("drop");
+drop.addEventListener("click", () => $("picker").click());
+$("picker").addEventListener("change", (e) => { files = [...e.target.files]; renderFiles(); });
+["dragenter", "dragover"].forEach((evt) =>
+  drop.addEventListener(evt, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach((evt) =>
+  drop.addEventListener(evt, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", (e) => { files = [...e.dataTransfer.files]; renderFiles(); });
+
+$("import").addEventListener("click", async () => {
+  if (!token()) { $("status").innerHTML = '<span class="err">Enter the administrator token first.</span>'; return; }
+  const body = new FormData();
+  files.forEach((f) => body.append("files", f));
+  if ($("county").value) body.append("county", $("county").value);
+  if ($("label").value) body.append("label", $("label").value);
+
+  $("import").disabled = true;
+  // Scanned PDFs are OCR'd during import, which is slow; say so rather than
+  // leaving the operator wondering whether it has hung.
+  $("status").textContent = "Processing. Scanned documents are read by OCR and can take a minute per file…";
+
+  try {
+    const response = await fetch("/api/admin/import", { method: "POST", headers: headers(), body });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Import failed");
+    $("summary").textContent = data.text;
+    $("result").style.display = "block";
+    $("status").textContent = "Done.";
+    files = []; renderFiles(); loadQueue();
+  } catch (error) {
+    $("status").innerHTML = '<span class="err">' + escapeHtml(error.message) + "</span>";
+  } finally {
+    $("import").disabled = files.length === 0;
+  }
+});
+
+async function loadQueue() {
+  if (!token()) return;
+  try {
+    const response = await fetch("/api/admin/queue", { headers: headers() });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Could not load the queue");
+
+    const statuses = data.counts_by_status || {};
+    const stats = ["ready", "needs_review", "published", "rejected"]
+      .map((k) => `<span class="stat"><b>${statuses[k] || 0}</b><span>${k.replace("_", " ")}</span></span>`)
+      .join("");
+
+    const rows = (data.items || []).map((item) => `
+      <tr>
+        <td><span class="pill review">${escapeHtml(item.reason.replace(/_/g, " "))}</span></td>
+        <td>${escapeHtml(item.detail)}</td>
+        <td class="muted small">${escapeHtml(item.entity_type)} #${item.entity_id}</td>
+        <td><button class="ghost" data-resolve="${item.id}">Mark resolved</button></td>
+      </tr>`).join("");
+
+    $("queue").innerHTML = stats + (rows
+      ? `<table style="margin-top:14px"><thead><tr><th>Reason</th><th>Detail</th><th>Record</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+      : '<p class="muted small" style="margin-bottom:0">Nothing is waiting for review.</p>');
+
+    $("queue").querySelectorAll("[data-resolve]").forEach((button) =>
+      button.addEventListener("click", () => resolve(button.dataset.resolve)));
+  } catch (error) {
+    $("queue").innerHTML = '<p class="err small">' + escapeHtml(error.message) + "</p>";
+  }
+}
+
+async function resolve(id) {
+  await fetch(`/api/admin/queue/${id}/resolve`, {
+    method: "POST",
+    headers: { ...headers(), "Content-Type": "application/json" },
+    body: JSON.stringify({ decision: "accepted", note: "resolved from the admin dashboard" }),
+  });
+  loadQueue();
+}
+
+$("refresh").addEventListener("click", loadQueue);
+
+$("publish").addEventListener("click", async () => {
+  if (!token()) { $("publishStatus").innerHTML = '<span class="err">Enter the administrator token first.</span>'; return; }
+  const response = await fetch("/api/admin/applications/publish-ready", { method: "POST", headers: headers() });
+  const data = await response.json();
+  $("publishStatus").textContent = response.ok
+    ? `Published ${data.published} application(s).`
+    : data.detail || "Publish failed";
+  loadQueue();
+});
+</script>
+</body>
+</html>

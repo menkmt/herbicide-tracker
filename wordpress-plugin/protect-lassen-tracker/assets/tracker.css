@@ -1,0 +1,58 @@
+/* Minimal styling. The theme owns typography and colour; this only adds what
+   the tracker's own structures need, so the tracker looks like part of
+   ProtectLassen.org rather than a separate application. */
+
+.plht-wrap { max-width: 1100px; margin: 0 auto; }
+.plht-lede { color: #55635c; max-width: 70ch; }
+.plht-muted { color: #55635c; }
+.plht-small { font-size: .88em; }
+
+.plht-grid { width: 100%; border-collapse: collapse; }
+.plht-grid th {
+  text-align: left; font-size: .74em; text-transform: uppercase;
+  letter-spacing: .06em; color: #55635c; padding: 8px 10px;
+  border-bottom: 1px solid #d8ded9;
+}
+.plht-grid td { padding: 0; border-bottom: 1px solid #d8ded9; }
+.plht-grid td a { display: block; padding: 11px 10px; text-decoration: none; color: inherit; }
+.plht-grid tr:hover td { background: #f3f6f4; }
+.plht-grid tr.plht-row-red td:first-child { box-shadow: inset 3px 0 0 #b3261e; }
+.plht-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.plht-badge {
+  display: inline-block; font-size: .72em; font-weight: 600;
+  padding: 2px 7px; border-radius: 100px; white-space: nowrap;
+}
+.plht-badge.plht-red { background: #fdecea; color: #b3261e; border: 1px solid #f2c4c0; }
+.plht-badge.plht-orange { background: #fdf3e6; color: #a35a09; border: 1px solid #f0d9b5; }
+.plht-badge.plht-yellow { background: #fdf9e6; color: #8a6d0b; border: 1px solid #eee2b0; }
+
+.plht-flag { border: 1px solid #d8ded9; border-radius: 6px; padding: 12px 14px; margin-bottom: 10px; }
+.plht-flag-red { border-left: 4px solid #b3261e; }
+.plht-flag-orange { border-left: 4px solid #a35a09; }
+.plht-flag-yellow { border-left: 4px solid #8a6d0b; }
+.plht-flag .plht-src { font-size: .82em; color: #55635c; margin-top: 6px; }
+
+.plht-notice { border-left: 3px solid #2f5d46; background: #f2f6f4; padding: 10px 14px; }
+.plht-notice.plht-warn { border-left-color: #a35a09; background: #fdf3e6; }
+
+.plht-facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; }
+.plht-facts dt { color: #55635c; font-size: .86em; }
+.plht-facts dd { margin: 0; }
+
+.plht-records { width: 100%; border-collapse: collapse; font-size: .9em; }
+.plht-records th, .plht-records td {
+  text-align: left; padding: 7px 9px; border-bottom: 1px solid #d8ded9; vertical-align: top;
+}
+
+.plht-counties { list-style: none; padding: 0; display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.plht-counties li { border: 1px solid #d8ded9; border-radius: 6px; padding: 10px 12px; }
+
+.plht-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin: 14px 0; }
+
+@media (max-width: 720px) {
+  .plht-grid thead { display: none; }
+  .plht-grid tr { display: block; border-bottom: 1px solid #d8ded9; }
+  .plht-grid td { display: block; border: 0; }
+}
