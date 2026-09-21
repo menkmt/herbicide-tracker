@@ -91,7 +91,8 @@ FIELD_SYNONYMS: dict[str, tuple[str, ...]] = {
     "quantity_units": ("quantity units", "unit", "units", "quantity uom", "amount units"),
     "registration_expired": ("registration expired", "reg expired"),
     # bookkeeping
-    "submittal_status": ("submittal status", "sub status", "report status", "status"),
+    "submittal_status": ("submittal status", "sub status", "status"),
+    "report_status": ("report status",),
     "school_notification": ("school notify", "schoolsite notification", "school notification"),
     "entered_by": ("entered by", "data entry by"),
     "pre_plant": ("pre-plant application", "pre plant application", "preplant"),
