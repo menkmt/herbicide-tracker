@@ -1,0 +1,41 @@
+import type { MetadataRoute } from "next";
+import { api } from "@/lib/api";
+
+/** Public pages are meant to be indexable, so they are listed properly. */
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://protectlassen.org";
+  const entries: MetadataRoute.Sitemap = [
+    { url: `${base}/`, changeFrequency: "weekly", priority: 1 },
+    { url: `${base}/herbicide-tracker`, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${base}/map`, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${base}/chemical`, changeFrequency: "monthly", priority: 0.7 },
+    { url: `${base}/about`, changeFrequency: "yearly", priority: 0.5 },
+  ];
+
+  try {
+    const { counties } = await api.counties();
+    for (const county of counties) {
+      entries.push({ url: `${base}${county.url}`, changeFrequency: "weekly", priority: 0.8 });
+    }
+    const { chemicals } = await api.chemicals();
+    for (const chemical of chemicals) {
+      entries.push({ url: `${base}${chemical.url}`, changeFrequency: "monthly", priority: 0.6 });
+    }
+    // Paged so a large tracker does not try to build one enormous sitemap.
+    const first = await api.applications({ page_size: 50 });
+    for (let page = 1; page <= Math.min(first.pages, 40); page += 1) {
+      const data = page === 1 ? first : await api.applications({ page, page_size: 50 });
+      for (const application of data.applications) {
+        entries.push({
+          url: `${base}${application.url}`,
+          lastModified: application.date_end ?? undefined,
+          changeFrequency: "yearly",
+          priority: 0.6,
+        });
+      }
+    }
+  } catch {
+    // A sitemap that is missing entries is better than a build that fails.
+  }
+  return entries;
+}

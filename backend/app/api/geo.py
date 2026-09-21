@@ -29,6 +29,7 @@ def map_applications(
     _: Principal = Depends(rate_limit),
     county: str | None = None,
     year: int | None = None,
+    slug: str | None = Query(None, description="A single application's parcels"),
     bbox: str | None = Query(None, description="minLon,minLat,maxLon,maxLat"),
     limit: int = Query(2000, ge=1, le=5000),
 ):
@@ -56,6 +57,8 @@ def map_applications(
         .join(Parcel, Parcel.id == ClusterParcel.parcel_id)
         .where(ApplicationCluster.status == "published", Parcel.geom.isnot(None))
     )
+    if slug:
+        stmt = stmt.where(ApplicationCluster.slug == slug)
     if county:
         stmt = stmt.join(County, ApplicationCluster.county_id == County.id).where(
             County.slug == county

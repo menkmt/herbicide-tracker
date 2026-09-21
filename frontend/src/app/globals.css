@@ -1,0 +1,147 @@
+/* Protect Lassen tracker styling.
+   Deliberately restrained: this is a public record, and the flags are the
+   only place colour carries meaning, so nothing else competes with them. */
+
+:root {
+  --ink: #1b2a24;
+  --ink-soft: #55635c;
+  --line: #d8ded9;
+  --bg: #fbfcfb;
+  --panel: #ffffff;
+  --forest: #2f5d46;
+  --forest-dark: #234534;
+  --red: #b3261e;
+  --red-bg: #fdecea;
+  --orange: #a35a09;
+  --orange-bg: #fdf3e6;
+  --yellow: #8a6d0b;
+  --yellow-bg: #fdf9e6;
+  --radius: 6px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.55;
+}
+
+a { color: var(--forest); }
+
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+
+header.site {
+  background: var(--forest-dark);
+  color: #eef3f0;
+  padding: 14px 0;
+}
+header.site a { color: #eef3f0; text-decoration: none; }
+header.site .brand { font-weight: 700; letter-spacing: .01em; }
+header.site nav { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; }
+header.site .inner { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+
+footer.site {
+  margin-top: 48px; padding: 24px 0; border-top: 1px solid var(--line);
+  color: var(--ink-soft); font-size: .88rem;
+}
+
+h1 { font-size: 1.75rem; margin: 24px 0 6px; line-height: 1.25; }
+h2 { font-size: 1.2rem; margin: 28px 0 10px; }
+h3 { font-size: 1rem; margin: 18px 0 6px; }
+.lede { color: var(--ink-soft); margin: 0 0 18px; max-width: 70ch; }
+
+.panel {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 18px;
+}
+
+/* --- application grid --------------------------------------------------- */
+
+.grid-table { width: 100%; border-collapse: collapse; font-size: .93rem; }
+.grid-table th {
+  text-align: left; font-size: .74rem; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--ink-soft); font-weight: 600;
+  padding: 8px 10px; border-bottom: 1px solid var(--line);
+}
+.grid-table td { padding: 0; border-bottom: 1px solid var(--line); }
+/* The whole row is the link, so keyboard users get one stop per application
+   and the click target is the row rather than a small text link. */
+.grid-table td a { display: block; padding: 11px 10px; text-decoration: none; color: inherit; }
+.grid-table tr:hover td { background: #f3f6f4; }
+.grid-table tr.flag-red td:first-child { box-shadow: inset 3px 0 0 var(--red); }
+.grid-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.grid-table .title { font-weight: 600; }
+.grid-table .sub { color: var(--ink-soft); font-size: .84rem; }
+
+.badge {
+  display: inline-block; font-size: .72rem; font-weight: 600; padding: 2px 7px;
+  border-radius: 100px; border: 1px solid transparent; white-space: nowrap;
+}
+.badge.red { background: var(--red-bg); color: var(--red); border-color: #f2c4c0; }
+.badge.orange { background: var(--orange-bg); color: var(--orange); border-color: #f0d9b5; }
+.badge.yellow { background: var(--yellow-bg); color: var(--yellow); border-color: #eee2b0; }
+.badge.plain { background: #eef1ef; color: var(--ink-soft); border-color: var(--line); }
+.badge.aerial { background: #e8eff8; color: #1d4e89; border-color: #c6d8ee; }
+
+/* --- filters ------------------------------------------------------------ */
+
+.filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin: 16px 0; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: .74rem; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); }
+input, select, button {
+  font: inherit; padding: 7px 9px; border: 1px solid var(--line);
+  border-radius: var(--radius); background: #fff; color: inherit;
+}
+button.primary { background: var(--forest); color: #fff; border-color: var(--forest); cursor: pointer; }
+button.primary:hover { background: var(--forest-dark); }
+
+/* --- cards / stats ------------------------------------------------------ */
+
+.cards { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+.card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 14px; text-decoration: none; color: inherit; display: block; }
+.card:hover { border-color: var(--forest); }
+.card .n { font-size: 1.5rem; font-weight: 700; }
+.card .k { font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); }
+
+dl.facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; margin: 0; }
+dl.facts dt { color: var(--ink-soft); font-size: .84rem; }
+dl.facts dd { margin: 0; }
+
+.notice {
+  border-left: 3px solid var(--forest); background: #f2f6f4;
+  padding: 10px 14px; border-radius: 0 var(--radius) var(--radius) 0;
+  font-size: .9rem; color: var(--ink-soft);
+}
+.notice.warn { border-left-color: var(--orange); background: var(--orange-bg); }
+
+.flag-block {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 12px 14px; margin-bottom: 10px;
+}
+.flag-block.red { border-left: 4px solid var(--red); }
+.flag-block.orange { border-left: 4px solid var(--orange); }
+.flag-block.yellow { border-left: 4px solid var(--yellow); }
+.flag-block .src { font-size: .8rem; color: var(--ink-soft); margin-top: 6px; }
+
+.map { height: 480px; width: 100%; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.map.tall { height: 72vh; }
+.maplibregl-popup-content { font-family: inherit; font-size: .88rem; }
+
+.muted { color: var(--ink-soft); }
+.small { font-size: .85rem; }
+table.records { width: 100%; border-collapse: collapse; font-size: .88rem; }
+table.records th, table.records td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.records th { color: var(--ink-soft); font-size: .74rem; text-transform: uppercase; letter-spacing: .05em; }
+
+.pager { display: flex; gap: 8px; align-items: center; margin-top: 18px; }
+.pager a { padding: 6px 12px; border: 1px solid var(--line); border-radius: var(--radius); text-decoration: none; background: #fff; }
+
+@media (max-width: 720px) {
+  .grid-table thead { display: none; }
+  .grid-table tr { display: block; border-bottom: 1px solid var(--line); }
+  .grid-table td { display: block; border: 0; }
+  .grid-table td:not(:first-child) a { padding-top: 0; }
+}
