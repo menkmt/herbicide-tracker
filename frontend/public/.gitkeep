@@ -1,0 +1,5 @@
+Next.js serves this directory at the site root.
+
+It is kept in version control even while empty because the Docker build copies
+it, and an empty directory is not tracked by git — so without this file the
+image build fails with "/app/public: not found".

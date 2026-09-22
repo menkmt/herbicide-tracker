@@ -8,6 +8,9 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci || npm install
 COPY . .
+# public/ holds optional static assets and may be empty. Ensure it exists so
+# the copy into the runtime stage cannot fail on a fresh checkout.
+RUN mkdir -p public
 ARG TRACKER_API_URL=http://api:8000
 ENV TRACKER_API_URL=$TRACKER_API_URL
 RUN npm run build
