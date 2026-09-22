@@ -45,7 +45,12 @@ curl -fsSL https://raw.githubusercontent.com/menkmt/herbicide-tracker/HEAD/deplo
 
 That installs Docker, sets the firewall, clones the repo, generates secrets,
 builds and starts everything, runs the migrations, and probes the GIS services
-so their field names can be wired up. It deliberately stops short of exposing
+so their field names can be wired up.
+
+It detaches itself and logs to `/root/bootstrap.log`, because the Docker build
+takes several minutes and an SSH session will often time out partway through —
+which would otherwise kill the build and leave the box half configured. You can
+disconnect safely; reattach with `tail -f /root/bootstrap.log`. It deliberately stops short of exposing
 anything to the internet — the reverse proxy step below is separate and
 deliberate. It is safe to re-run.
 

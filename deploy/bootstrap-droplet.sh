@@ -135,7 +135,7 @@ fi
 # ---------------------------------------------------------------------------
 log "Building and starting the stack"
 # ---------------------------------------------------------------------------
-docker compose build --quiet
+docker compose build
 docker compose up -d
 printf '    waiting for the database'
 for _ in $(seq 1 60); do
