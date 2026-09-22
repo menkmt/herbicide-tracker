@@ -52,6 +52,35 @@ deliberate. It is safe to re-run.
 The rest of this document is what that script does, step by step, for when you
 want to do it by hand or understand what happened.
 
+### If the repository is private
+
+`raw.githubusercontent.com` will not serve a private repository, so the droplet
+needs its own read-only access first. A **deploy key** is the right mechanism:
+it is scoped to this one repository, grants read only, and is revoked by
+deleting it — unlike a personal access token, which carries your whole account.
+
+On the droplet:
+
+```bash
+ssh-keygen -t ed25519 -N "" -f /root/.ssh/id_ed25519
+cat /root/.ssh/id_ed25519.pub
+```
+
+Copy that public key into GitHub → the repository → Settings → Deploy keys →
+Add deploy key. Give it a name like `tracker droplet`, paste the key, and
+**leave "Allow write access" unchecked** — the droplet only ever needs to read.
+
+Then:
+
+```bash
+ssh -T git@github.com          # accept the host key; "successfully authenticated" is success
+git clone git@github.com:menkmt/herbicide-tracker.git /opt/tracker
+bash /opt/tracker/deploy/bootstrap-droplet.sh
+```
+
+The script detects the working deploy key and uses SSH for future pulls, so
+`git pull` keeps working when you update.
+
 ## First deployment
 
 ### 1. Create the droplet
@@ -259,7 +288,7 @@ visitors never do.
 
 ```bash
 cd /opt/tracker
-git pull
+git pull          # uses the deploy key if the repository is private
 docker compose build
 docker compose up -d
 docker compose exec api alembic upgrade head

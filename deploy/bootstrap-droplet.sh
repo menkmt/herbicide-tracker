@@ -2,11 +2,20 @@
 #
 # One-shot setup for a fresh Ubuntu 24.04 droplet.
 #
-#   ssh root@YOUR_DROPLET_IP
+# Public repository:
+#
 #   curl -fsSL https://raw.githubusercontent.com/menkmt/herbicide-tracker/HEAD/deploy/bootstrap-droplet.sh | bash
 #
-# Or clone the repo first and run it locally. It is safe to run twice: every
-# step checks whether it has already been done.
+# Private repository — the curl above cannot reach it, so give the droplet a
+# read-only deploy key and clone first (see docs/DEPLOYMENT.md):
+#
+#   ssh-keygen -t ed25519 -N "" -f /root/.ssh/id_ed25519
+#   cat /root/.ssh/id_ed25519.pub      # add to GitHub as a read-only deploy key
+#   ssh -T git@github.com              # accept the host key
+#   git clone git@github.com:menkmt/herbicide-tracker.git /opt/tracker
+#   bash /opt/tracker/deploy/bootstrap-droplet.sh
+#
+# It is safe to run twice: every step checks whether it has already been done.
 #
 # What it does NOT do: obtain a TLS certificate or open the site to the
 # internet. It leaves the stack listening on localhost only, so you can check
@@ -15,7 +24,11 @@
 
 set -euo pipefail
 
-REPO_URL="${REPO_URL:-https://github.com/menkmt/herbicide-tracker.git}"
+# Defaults to SSH when the droplet has a key that GitHub accepts, so a private
+# repository works without editing anything. Override REPO_URL to force one.
+REPO_SSH="git@github.com:menkmt/herbicide-tracker.git"
+REPO_HTTPS="https://github.com/menkmt/herbicide-tracker.git"
+REPO_URL="${REPO_URL:-}"
 # Empty means the repository default branch, which is where the work lives.
 REPO_REF="${REPO_REF:-}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/tracker}"
@@ -74,6 +87,20 @@ printf '    SSH, 80 and 443 open; 8000 and 3000 closed\n'
 # ---------------------------------------------------------------------------
 log "Fetching the code"
 # ---------------------------------------------------------------------------
+if [ -z "$REPO_URL" ]; then
+    # `ssh -T git@github.com` exits 1 on success ("successfully authenticated,
+    # but GitHub does not provide shell access"), so match on the message
+    # rather than the exit code.
+    if ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -T \
+           git@github.com 2>&1 | grep -q "successfully authenticated"; then
+        REPO_URL="$REPO_SSH"
+        printf '    using SSH (deploy key accepted)\n'
+    else
+        REPO_URL="$REPO_HTTPS"
+        printf '    using HTTPS (no deploy key; fine for a public repository)\n'
+    fi
+fi
+
 if [ -d "$INSTALL_DIR/.git" ]; then
     git -C "$INSTALL_DIR" fetch --quiet origin
     if [ -n "$REPO_REF" ]; then
