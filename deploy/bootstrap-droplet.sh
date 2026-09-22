@@ -138,11 +138,18 @@ log "Building and starting the stack"
 docker compose build
 docker compose up -d
 printf '    waiting for the database'
+DB_READY=0
 for _ in $(seq 1 60); do
-    if docker compose exec -T db pg_isready -U tracker >/dev/null 2>&1; then break; fi
+    if docker compose exec -T db pg_isready -U tracker >/dev/null 2>&1; then
+        DB_READY=1
+        break
+    fi
     printf '.'; sleep 2
 done
 printf '\n'
+[ "$DB_READY" = "1" ] || die "the database never became ready — check: docker compose logs db"
+
+log "Running database migrations"
 docker compose exec -T api alembic upgrade head
 
 # ---------------------------------------------------------------------------
