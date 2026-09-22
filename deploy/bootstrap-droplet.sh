@@ -3,7 +3,7 @@
 # One-shot setup for a fresh Ubuntu 24.04 droplet.
 #
 #   ssh root@YOUR_DROPLET_IP
-#   curl -fsSL https://raw.githubusercontent.com/menkmt/herbicide-tracker/claude/intelligent-babbage-ysc4wf/deploy/bootstrap-droplet.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/menkmt/herbicide-tracker/HEAD/deploy/bootstrap-droplet.sh | bash
 #
 # Or clone the repo first and run it locally. It is safe to run twice: every
 # step checks whether it has already been done.
@@ -16,7 +16,8 @@
 set -euo pipefail
 
 REPO_URL="${REPO_URL:-https://github.com/menkmt/herbicide-tracker.git}"
-REPO_REF="${REPO_REF:-claude/intelligent-babbage-ysc4wf}"
+# Empty means the repository default branch, which is where the work lives.
+REPO_REF="${REPO_REF:-}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/tracker}"
 
 log()  { printf '\n\033[1;32m==>\033[0m %s\n' "$*"; }
@@ -74,11 +75,15 @@ printf '    SSH, 80 and 443 open; 8000 and 3000 closed\n'
 log "Fetching the code"
 # ---------------------------------------------------------------------------
 if [ -d "$INSTALL_DIR/.git" ]; then
-    git -C "$INSTALL_DIR" fetch --quiet origin "$REPO_REF"
-    git -C "$INSTALL_DIR" checkout --quiet "$REPO_REF"
-    git -C "$INSTALL_DIR" pull --quiet origin "$REPO_REF"
-else
+    git -C "$INSTALL_DIR" fetch --quiet origin
+    if [ -n "$REPO_REF" ]; then
+        git -C "$INSTALL_DIR" checkout --quiet "$REPO_REF"
+    fi
+    git -C "$INSTALL_DIR" pull --quiet
+elif [ -n "$REPO_REF" ]; then
     git clone --quiet --branch "$REPO_REF" "$REPO_URL" "$INSTALL_DIR"
+else
+    git clone --quiet "$REPO_URL" "$INSTALL_DIR"
 fi
 cd "$INSTALL_DIR"
 

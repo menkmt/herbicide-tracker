@@ -40,7 +40,7 @@ several years reaches tens of gigabytes. Two things keep that off this server:
 On a fresh Ubuntu 24.04 droplet, as root:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/menkmt/herbicide-tracker/claude/intelligent-babbage-ysc4wf/deploy/bootstrap-droplet.sh | bash
+curl -fsSL https://raw.githubusercontent.com/menkmt/herbicide-tracker/HEAD/deploy/bootstrap-droplet.sh | bash
 ```
 
 That installs Docker, sets the firewall, clones the repo, generates secrets,
