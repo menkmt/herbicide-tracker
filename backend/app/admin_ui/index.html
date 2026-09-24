@@ -56,8 +56,8 @@
   <div class="panel">
     <div class="row">
       <div>
-        <label class="small muted" for="token">Administrator token</label><br />
-        <input id="token" type="password" size="32" placeholder="TRACKER_ADMIN_TOKEN" />
+        <label class="small muted" for="token">Admin password</label><br />
+        <input id="token" type="password" size="32" placeholder="paste the admin password" autocomplete="current-password" />
       </div>
       <div>
         <label class="small muted" for="county">County</label><br />
@@ -76,7 +76,7 @@
 
   <h2>Import</h2>
   <div id="drop">
-    <strong>Drop PUR files here</strong>
+    <strong>Drop files here — as many as you like, all at once or a few at a time</strong>
     <p>Pesticide use reports, notices of intent and restricted materials permits.</p>
     <p class="small">Spreadsheets, CSV, tab-separated exports, Word permits, PDFs — including scans.
        The file type is detected from its contents, so nothing needs sorting first.</p>
@@ -94,7 +94,7 @@
   </div>
 
   <h2>Review queue</h2>
-  <div class="panel" id="queue"><p class="muted small">Enter a token and press Refresh queue.</p></div>
+  <div class="panel" id="queue"><p class="muted small">Enter the admin password and press Refresh queue.</p></div>
 
   <h2>Publish</h2>
   <div class="panel">
@@ -121,12 +121,31 @@ let files = [];
 const token = () => $("token").value.trim();
 const headers = () => (token() ? { "X-API-Key": token() } : {});
 
+function addFiles(incoming) {
+  for (const f of incoming) {
+    if (!files.some((g) => g.name === f.name && g.size === f.size)) files.push(f);
+  }
+  renderFiles();
+}
+
+function removeFile(index) {
+  files.splice(index, 1);
+  renderFiles();
+}
+
 function renderFiles() {
   $("filelist").innerHTML = files
-    .map((f) => `<li><span>${escapeHtml(f.name)}</span><span class="muted">${fmtSize(f.size)}</span></li>`)
+    .map((f, i) => `<li><span>${escapeHtml(f.name)}</span><span class="muted">${fmtSize(f.size)}
+      <a href="#" data-remove="${i}" title="Remove from this batch">&times;</a></span></li>`)
     .join("");
   $("import").disabled = files.length === 0;
+  $("import").textContent = files.length > 1 ? `Import ${files.length} files` : "Import";
 }
+
+$("filelist").addEventListener("click", (e) => {
+  const idx = e.target.dataset.remove;
+  if (idx !== undefined) { e.preventDefault(); removeFile(Number(idx)); }
+});
 
 function fmtSize(bytes) {
   if (bytes < 1024) return bytes + " B";
@@ -141,15 +160,15 @@ function escapeHtml(value) {
 
 const drop = $("drop");
 drop.addEventListener("click", () => $("picker").click());
-$("picker").addEventListener("change", (e) => { files = [...e.target.files]; renderFiles(); });
+$("picker").addEventListener("change", (e) => { addFiles(e.target.files); e.target.value = ""; });
 ["dragenter", "dragover"].forEach((evt) =>
   drop.addEventListener(evt, (e) => { e.preventDefault(); drop.classList.add("over"); }));
 ["dragleave", "drop"].forEach((evt) =>
   drop.addEventListener(evt, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
-drop.addEventListener("drop", (e) => { files = [...e.dataTransfer.files]; renderFiles(); });
+drop.addEventListener("drop", (e) => addFiles(e.dataTransfer.files));
 
 $("import").addEventListener("click", async () => {
-  if (!token()) { $("status").innerHTML = '<span class="err">Enter the administrator token first.</span>'; return; }
+  if (!token()) { $("status").innerHTML = '<span class="err">Enter the admin password first.</span>'; return; }
   const body = new FormData();
   files.forEach((f) => body.append("files", f));
   if ($("county").value) body.append("county", $("county").value);
@@ -218,7 +237,7 @@ async function resolve(id) {
 $("refresh").addEventListener("click", loadQueue);
 
 $("publish").addEventListener("click", async () => {
-  if (!token()) { $("publishStatus").innerHTML = '<span class="err">Enter the administrator token first.</span>'; return; }
+  if (!token()) { $("publishStatus").innerHTML = '<span class="err">Enter the admin password first.</span>'; return; }
   const response = await fetch("/api/admin/applications/publish-ready", { method: "POST", headers: headers() });
   const data = await response.json();
   $("publishStatus").textContent = response.ok
