@@ -321,6 +321,20 @@ visitors never do.
 
 ## Updating
 
+Automatically, which is the intended way:
+
+```bash
+bash /opt/tracker/deploy/install-autodeploy.sh     # once
+```
+
+A systemd timer then checks GitHub every three minutes and, when the tracked
+branch has new commits, pulls, rebuilds, restarts and migrates. It is
+pull-based, so GitHub holds no credential for the server and no port is
+opened. Progress is in `/var/log/tracker-deploy.log`. A push is live within
+about ten minutes (three to notice it, the rest is the frontend build).
+
+Or by hand:
+
 ```bash
 cd /opt/tracker
 git pull          # uses the deploy key if the repository is private
