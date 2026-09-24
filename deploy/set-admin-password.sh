@@ -42,9 +42,14 @@ else
 fi
 printf '    stored in .env\n'
 
-if docker compose ps --status running caddy 2>/dev/null | grep -q caddy; then
-    log "Reloading the proxy"
+# Recreate rather than reload: the hash reaches Caddy as an environment
+# variable, and a container that is crash-looping on a bad config would not
+# show as "running", so do not condition on that.
+if grep -q "^COMPOSE_PROFILES=.*public" .env; then
+    log "Restarting the proxy"
     docker compose up -d --force-recreate caddy
+    sleep 3
+    docker compose ps caddy
 fi
 
 cat <<EOT

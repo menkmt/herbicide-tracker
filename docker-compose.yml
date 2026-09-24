@@ -132,8 +132,11 @@ services:
       TRACKER_DOMAIN: ${TRACKER_DOMAIN:-}
       CADDY_EMAIL: ${CADDY_EMAIL:-}
       # Browser login for the admin pages (deploy/set-admin-password.sh) and
-      # the token Caddy attaches once someone is past it.
-      TRACKER_ADMIN_BASIC_HASH: ${TRACKER_ADMIN_BASIC_HASH:-}
+      # the token Caddy attaches once someone is past it. The fallback is the
+      # hash of a random password that was generated once and discarded, so
+      # with no password set the admin pages are locked rather than Caddy
+      # refusing to start and taking the public site down with it.
+      TRACKER_ADMIN_BASIC_HASH: ${TRACKER_ADMIN_BASIC_HASH:-$$2b$$14$$xHzQglXpTQNi8jsz.7eTOunZE9okC4nnU01wFjTRNINMX/QpsIsG2}
       TRACKER_ADMIN_TOKEN: ${TRACKER_ADMIN_TOKEN:-}
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
