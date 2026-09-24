@@ -19,15 +19,42 @@ export default async function HomePage() {
 
   return (
     <>
-      <h1>Herbicide applications on California forest land</h1>
-      <p className="lede">
-        Built from the pesticide use reports, notices of intent and restricted
-        materials permits that companies are required to file with county
-        agricultural commissioners. Every application below links to the records it
-        was built from.
-      </p>
+      <section className="hero">
+        <span className="eyebrow">Public record · California forest land</span>
+        <h1>
+          Every forestry herbicide application,{" "}
+          <span className="gradient-text">on the record.</span>
+        </h1>
+        <p className="lede">
+          What was sprayed, where, by whom and how much — assembled from the pesticide
+          use reports, notices of intent and restricted materials permits that
+          companies must file with county agricultural commissioners. Every
+          application links to the documents it was built from.
+        </p>
 
-      <div className="cards">
+        {/* The address is used for the search only and is never stored. */}
+        <form action="/near-me" method="get" className="search">
+          <input
+            id="address"
+            name="address"
+            aria-label="Address"
+            placeholder="Enter an address to see what was sprayed nearby"
+            required
+          />
+          <select id="miles" name="miles" defaultValue="1" aria-label="Radius">
+            {[0.5, 1, 2, 5, 10, 25].map((value) => (
+              <option key={value} value={value}>
+                within {value} mile{value === 1 ? "" : "s"}
+              </option>
+            ))}
+          </select>
+          <button type="submit" className="primary">
+            Search
+          </button>
+        </form>
+      </section>
+
+      <div className="cards stats">
         <div className="card">
           <div className="n">{recent.total.toLocaleString()}</div>
           <div className="k">Applications published</div>
@@ -53,7 +80,7 @@ export default async function HomePage() {
         <div className="cards">
           {counties.counties.map((county) => (
             <Link key={county.slug} href={county.url} className="card">
-              <div className="n">{county.name}</div>
+              <div className="n" style={{ fontSize: "1.3rem" }}>{county.name}</div>
               <div className="k">
                 {county.applications} application{county.applications === 1 ? "" : "s"} ·{" "}
                 {Math.round(county.acres).toLocaleString()} acres
@@ -63,36 +90,9 @@ export default async function HomePage() {
         </div>
       )}
 
-      <h2>Search near an address</h2>
-      <div className="panel">
-        <p className="small muted" style={{ marginTop: 0 }}>
-          Enter an address to find applications near it. The address is used for the
-          search only and is not stored.
-        </p>
-        <form action="/near-me" method="get" className="filters">
-          <div className="field" style={{ flex: "1 1 320px" }}>
-            <label htmlFor="address">Address</label>
-            <input id="address" name="address" placeholder="e.g. 175 Russell Ave, Susanville CA" required />
-          </div>
-          <div className="field">
-            <label htmlFor="miles">Radius</label>
-            <select id="miles" name="miles" defaultValue="1">
-              {[0.5, 1, 2, 5, 10, 25].map((value) => (
-                <option key={value} value={value}>
-                  {value} mile{value === 1 ? "" : "s"}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button type="submit" className="primary">
-            Search applications
-          </button>
-        </form>
-      </div>
-
       <h2>Most recent applications</h2>
       <ApplicationGrid rows={recent.applications} />
-      <p style={{ marginTop: 14 }}>
+      <p style={{ marginTop: 16 }}>
         <Link href="/herbicide-tracker">See all applications →</Link>
       </p>
     </>

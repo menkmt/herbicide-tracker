@@ -32,6 +32,9 @@ esac
 EMAIL="${EMAIL:-admin@$DOMAIN}"
 cd "$INSTALL_DIR" || die "no checkout at $INSTALL_DIR"
 [ -f .env ] || die "no .env — run deploy/bootstrap-droplet.sh first"
+if ! grep -q "^TRACKER_ADMIN_BASIC_HASH='\$" .env; then
+    die "no admin login set. First run:  bash deploy/set-admin-password.sh 'your password'"
+fi
 
 # ---------------------------------------------------------------------------
 log "Checking DNS"
@@ -104,9 +107,8 @@ cat <<EOT
 Live.
 
   Public site   https://$DOMAIN
-  Admin panel   https://api.$DOMAIN/admin
-  API docs      https://api.$DOMAIN/api/docs
-  Admin token   $(grep '^TRACKER_ADMIN_TOKEN=' .env | cut -d= -f2)
+  Admin panel   https://api.$DOMAIN/admin   (username: admin, your chosen password)
+  API docs      https://api.$DOMAIN/api/docs (same login)
 
 Ports 8000 and 3000 remain loopback-only; everything public goes through
 Caddy on 443. The SSH tunnel still works if you prefer it for admin.

@@ -39,28 +39,26 @@ www.{$TRACKER_DOMAIN} {
 api.{$TRACKER_DOMAIN} {
 	import hardening
 
-	# The dashboard page holds no data; the admin token, sent with every
-	# action, is the control. To restrict it by source address as well,
-	# replace the handle below with:
-	#
-	#   @office remote_ip 203.0.113.7
-	#   handle /admin* {
-	#       handle @office { reverse_proxy api:8000 }
-	#       respond 404
-	#   }
-	handle /admin* {
+	# The admin dashboard, the admin API and the API docs sit behind a
+	# browser login (HTTP basic auth, username "admin"). The password hash
+	# comes from deploy/set-admin-password.sh. Once past the login, Caddy
+	# attaches the application's own admin token to the request, so the
+	# person never handles the token and nothing reaches the admin API
+	# without first passing the login. The API port is loopback-only, so no
+	# one can attach that header from outside.
+	@private path /admin* /api/admin/* /api/docs /api/openapi.json
+	handle @private {
+		basic_auth {
+			admin {$TRACKER_ADMIN_BASIC_HASH}
+		}
 		header X-Robots-Tag "noindex, nofollow"
-		reverse_proxy api:8000
-	}
-
-	# Uploads go to /api/admin/import; a scanned permit is ~6 MB, so 200 MB
-	# per request is generous for a batch and still bounds what a stranger
-	# can make the box swallow. Everything else on the API is small.
-	handle /api/admin/* {
 		request_body {
 			max_size 200MB
 		}
-		reverse_proxy api:8000
+		reverse_proxy api:8000 {
+			header_up X-API-Key {$TRACKER_ADMIN_TOKEN}
+			header_up -Authorization
+		}
 	}
 
 	handle {

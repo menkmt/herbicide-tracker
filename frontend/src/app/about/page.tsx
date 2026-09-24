@@ -61,7 +61,7 @@ export default async function AboutPage() {
         treat the whole property. The reported acreage is always shown alongside.
       </p>
 
-      <h2>Chemical warnings</h2>
+      <h2 id="warnings">Chemical warnings</h2>
       <p>
         Two different things are both shown in red, and the tracker always says which
         it means:

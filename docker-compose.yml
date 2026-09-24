@@ -131,6 +131,10 @@ services:
     environment:
       TRACKER_DOMAIN: ${TRACKER_DOMAIN:-}
       CADDY_EMAIL: ${CADDY_EMAIL:-}
+      # Browser login for the admin pages (deploy/set-admin-password.sh) and
+      # the token Caddy attaches once someone is past it.
+      TRACKER_ADMIN_BASIC_HASH: ${TRACKER_ADMIN_BASIC_HASH:-}
+      TRACKER_ADMIN_TOKEN: ${TRACKER_ADMIN_TOKEN:-}
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data

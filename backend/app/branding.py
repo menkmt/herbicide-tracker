@@ -39,7 +39,7 @@ class Brand:
         return f"RED — {self.watchlist_label}"
 
 
-DEFAULT_PRODUCT_NAME = "Ground Truth"
+DEFAULT_PRODUCT_NAME = "Herbicide Tracker California"
 DEFAULT_TAGLINE = "Public records of what was sprayed, where"
 #: Used when no publisher is configured. Says what the flag *is* rather than
 #: attributing it to an organisation that has not been named.

@@ -165,11 +165,19 @@ Create three DNS A records at your registrar, all pointing at the droplet:
 | `api` | the API, its docs at `/api/docs`, and the admin dashboard at `/admin` |
 
 Two hostnames rather than one because the API and the Next.js site both own an
-`/api/` prefix. Then, on the droplet:
+`/api/` prefix. Then, on the droplet, set the admin login and enable the domain:
 
 ```bash
+bash /opt/tracker/deploy/set-admin-password.sh        # prompts; or pass it as the argument
 bash /opt/tracker/deploy/enable-domain.sh herbicidetracker.com you@example.com
 ```
+
+The admin dashboard, the admin API and the API docs are behind a browser login
+(username `admin`) enforced by Caddy before anything reaches the application.
+Once past it, Caddy attaches the application's own admin token to the request,
+so nobody handles that token by hand and nothing reaches the admin API without
+first passing the login. Change the password any time by re-running
+`set-admin-password.sh`.
 
 It checks all three records resolve to this server (Caddy cannot get a
 certificate for a name that points elsewhere), writes `TRACKER_DOMAIN`,
@@ -181,10 +189,8 @@ warnings; it defaults to `admin@` the domain.
 If a record has not propagated yet the script says which one and changes
 nothing; re-run it in a few minutes.
 
-To restrict the admin dashboard by source address as well as by token, see the
-comment in `deploy/Caddyfile`. The token is the real control — the page holds
-no data and every action carries it — but there is no reason for the whole
-internet to reach an upload form if you have a fixed address.
+To restrict the admin pages by source address as well, see the comment in
+`deploy/Caddyfile`.
 
 **Why ports 8000, 3000 and 5432 are bound to `127.0.0.1` in the compose
 file:** Docker programs iptables directly and its rules are consulted before
@@ -198,8 +204,8 @@ layer. On the server the only public listener is Caddy.
 curl -s https://api.herbicidetracker.com/api/meta | head
 ```
 
-Then open `https://api.herbicidetracker.com/admin`, paste the admin token, and
-drop in a county's documents. The public site is at
+Then open `https://api.herbicidetracker.com/admin`, sign in, and drop in a
+county's documents. The public site is at
 `https://herbicidetracker.com`.
 
 ## Locking the box down
@@ -219,7 +225,7 @@ What is protecting what, so you can judge it rather than take it on trust:
 | Asset | Control |
 | --- | --- |
 | The source code | Lives on the droplet and in the GitHub repository. Anyone with root SSH or repository access can read it; nothing on the public site exposes it. The site's JavaScript bundle is minified build output, not the source. Keep the repository private (Settings → Danger Zone) and the droplet key-only. |
-| The admin dashboard | A 64-hex-character random token, compared in constant time, sent with every action and never stored server-side in a cookie. The dashboard page itself holds no data. Optional source-IP allowlist in `deploy/Caddyfile`. |
+| The admin dashboard | A browser login at the proxy (bcrypt-hashed password, username `admin`) in front of the page, the admin API and the API docs; behind it, a 64-hex-character random token that only Caddy attaches, compared in constant time. Optional source-IP allowlist in `deploy/Caddyfile`. |
 | The database | Loopback-only port, random password, reachable only from the containers and from the box itself. |
 | Uploaded documents | Written by a non-root container user; OCR runs as that user. Upload size capped at the proxy. |
 | Bulk extraction of the published data | Anonymous callers get 60 requests/minute and pages of at most 50; a paid key gets more. Search and map endpoints are `noindex`. This raises the cost of scraping; nothing served publicly can make it impossible, and Cloudflare in front (free tier) is the next step when it matters. |

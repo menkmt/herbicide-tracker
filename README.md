@@ -1,4 +1,4 @@
-# Ground Truth — California pesticide application tracker
+# Herbicide Tracker California
 
 Turns the pesticide records that companies are required to file with California
 county agricultural commissioners into a public, searchable record of what was

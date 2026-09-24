@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
 
+const NAME = "Herbicide Tracker California";
+
 export const metadata: Metadata = {
   title: {
-    default: "Ground Truth",
-    template: "%s · Ground Truth",
+    default: NAME,
+    template: `%s · ${NAME}`,
   },
   description:
     "A public, searchable record of forestry herbicide and pesticide applications in " +
@@ -13,7 +15,7 @@ export const metadata: Metadata = {
     "restricted materials permits.",
   openGraph: {
     type: "website",
-    siteName: "Ground Truth",
+    siteName: NAME,
   },
   robots: { index: true, follow: true },
 };
@@ -25,29 +27,53 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="site">
           <div className="wrap inner">
             <Link href="/" className="brand">
-              Ground Truth
+              <span className="mark">HT</span>
+              <span>
+                Herbicide Tracker <span className="state">California</span>
+              </span>
             </Link>
             <nav>
               <Link href="/herbicide-tracker">Applications</Link>
               <Link href="/map">Map</Link>
               <Link href="/chemical">Chemicals</Link>
-              <Link href="/near-me">Search near an address</Link>
               <Link href="/about">About the data</Link>
+              <Link href="/near-me" className="cta">
+                Search near me
+              </Link>
             </nav>
           </div>
         </header>
         <main className="wrap">{children}</main>
         <footer className="site">
-          <div className="wrap">
-            <p>
-              Built from public records obtained from California county agricultural
-              commissioners. Every figure on this site comes from a source document;
-              each application page lists the records it was built from.
-            </p>
-            <p>
-              Parcel outlines show property associated with an application. They are not
-              a measurement of the area actually treated.
-            </p>
+          <div className="wrap cols">
+            <div>
+              <h4>{NAME}</h4>
+              <p style={{ marginTop: 0 }}>
+                Built from public records obtained from California county agricultural
+                commissioners. Every figure on this site comes from a source document;
+                each application page lists the records it was built from.
+              </p>
+              <p>
+                Parcel outlines show property associated with an application. They are
+                not a measurement of the area actually treated.
+              </p>
+            </div>
+            <div>
+              <h4>Explore</h4>
+              <ul>
+                <li><Link href="/herbicide-tracker">All applications</Link></li>
+                <li><Link href="/map">Map</Link></li>
+                <li><Link href="/chemical">Chemicals</Link></li>
+                <li><Link href="/near-me">Search near an address</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4>About</h4>
+              <ul>
+                <li><Link href="/about">Where the data comes from</Link></li>
+                <li><Link href="/about#warnings">What the colours mean</Link></li>
+              </ul>
+            </div>
           </div>
         </footer>
       </body>

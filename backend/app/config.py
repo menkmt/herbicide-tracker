@@ -72,7 +72,7 @@ class Settings(BaseSettings):
     geocoder_url: str = ""
     geocoder_api_key: str | None = None
     #: A contact address is required by Nominatim's usage policy.
-    geocoder_user_agent: str = "GroundTruthTracker/0.1 (info@example.org)"
+    geocoder_user_agent: str = "HerbicideTrackerCA/0.1 (info@example.org)"
 
     calfire_fp_gis_url: str = (
         "https://egis.fire.ca.gov/arcgis/rest/services/FRAP/ForestPractice/MapServer"
