@@ -68,6 +68,12 @@ api.{$TRACKER_DOMAIN} {
 		}
 	}
 
+	# Page-view beacons arrive through the site's own server on the docker
+	# network, never from the internet.
+	handle /api/track {
+		respond 404
+	}
+
 	handle {
 		request_body {
 			max_size 1MB

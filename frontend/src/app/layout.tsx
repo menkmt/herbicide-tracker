@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { JsonLd, siteBase } from "@/components/JsonLd";
+import { Track } from "@/components/Track";
 import "./globals.css";
 
 // Every page reads the server's environment (site URL, verification tags,
@@ -114,6 +115,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </header>
         <main className="wrap">{children}</main>
+        <Track />
         <footer className="site">
           <div className="wrap cols">
             <div>

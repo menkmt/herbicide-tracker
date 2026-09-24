@@ -61,6 +61,11 @@
   .row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
   .err{color:var(--red)}
   .stat{display:inline-block;margin-right:26px}
+  .bars{display:flex;align-items:flex-end;gap:3px;height:70px;margin:14px 0 4px}
+  .bars div{flex:1;background:linear-gradient(180deg,var(--accent),var(--accent-2));border-radius:3px 3px 0 0;min-height:2px;opacity:.85}
+  .bars div:hover{opacity:1}
+  .cols2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:720px){.cols2{grid-template-columns:1fr}}
   .stat b{font-size:1.6rem;display:block;letter-spacing:-.02em}
   .stat span{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
   #signedin{font-size:.85rem;color:var(--muted)}
@@ -89,6 +94,9 @@
     </div>
     <p id="signedin" style="margin:12px 0 0">Checking sign-in…</p>
   </div>
+
+  <h2>Traffic</h2>
+  <div class="panel" id="traffic"><p class="muted small">Loading…</p></div>
 
   <h2>Import</h2>
   <div id="drop">
@@ -150,10 +158,12 @@ async function detectAuth() {
   if (proxyAuth) {
     $("signedin").innerHTML = "Signed in as <b>admin</b>. Everything you do here is logged.";
     loadQueue();
+    loadTraffic();
   } else {
     $("tokenField").style.display = "";
     $("signedin").textContent = "No proxy login on this deployment: paste TRACKER_ADMIN_TOKEN to use this page. It is held in this tab only.";
     $("queue").innerHTML = '<p class="muted small">Enter the token and press Refresh queue.</p>';
+    $("traffic").innerHTML = '<p class="muted small">Enter the token and press Refresh queue.</p>';
   }
 }
 detectAuth();
@@ -271,7 +281,44 @@ async function resolve(id) {
   loadQueue();
 }
 
-$("refresh").addEventListener("click", loadQueue);
+async function loadTraffic() {
+  if (!authed()) return;
+  try {
+    const response = await fetch("/api/admin/analytics?days=30", { headers: headers() });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Could not load traffic");
+
+    const stat = (n, label) => `<span class="stat"><b>${n.toLocaleString()}</b><span>${label}</span></span>`;
+    const stats =
+      stat(data.today.visitors, "visitors today") +
+      stat(data.last_7_days.visitors, "visitors, 7 days") +
+      stat(data.window.visitors, "visitors, 30 days") +
+      stat(data.window.views, "page views, 30 days");
+
+    const max = Math.max(1, ...data.per_day.map((d) => d.visitors));
+    const bars = `<div class="bars">${data.per_day.map((d) =>
+      `<div style="height:${Math.round((d.visitors / max) * 100)}%" title="${d.day}: ${d.visitors} visitors, ${d.views} views"></div>`).join("")}</div>
+      <p class="small muted" style="margin:0 0 14px">Visitors per day, last 30 days. Hover a bar for the date.</p>`;
+
+    const table = (rows, head, cells) => rows.length
+      ? `<table><thead><tr>${head.map((h) => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map((r) =>
+          `<tr>${cells(r).map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table>`
+      : '<p class="muted small">Nothing yet.</p>';
+
+    $("traffic").innerHTML = stats + bars + `<div class="cols2">
+      <div><h2 style="margin-top:0">Top pages</h2>${table(data.top_pages, ["Page", "Views", "Visitors"],
+        (r) => [escapeHtml(r.path), r.views, r.visitors])}</div>
+      <div><h2 style="margin-top:0">Came from</h2>${table(data.top_referrers, ["Site", "Views"],
+        (r) => [escapeHtml(r.host), r.views])}
+        ${data.countries.length ? `<h2>Countries</h2>${table(data.countries, ["Country", "Visitors"],
+          (r) => [escapeHtml(r.country), r.visitors])}` : ""}</div>
+    </div><p class="small muted" style="margin-bottom:0">${escapeHtml(data.note)}</p>`;
+  } catch (error) {
+    $("traffic").innerHTML = '<p class="err small">' + escapeHtml(error.message) + "</p>";
+  }
+}
+
+$("refresh").addEventListener("click", () => { loadQueue(); loadTraffic(); });
 
 $("publish").addEventListener("click", async () => {
   if (!authed()) { $("publishStatus").innerHTML = '<span class="err">Enter the admin token first.</span>'; return; }

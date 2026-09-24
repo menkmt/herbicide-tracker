@@ -13,7 +13,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
-from app.api import admin, geo, public
+from app.api import admin, analytics, geo, public
 from app.config import get_settings
 from app.core.access import AccessDenied
 from app.core.coverage import COVERAGE_START, DocumentKind
@@ -47,6 +47,7 @@ app.add_middleware(
 app.include_router(public.router)
 app.include_router(geo.router)
 app.include_router(admin.router)
+app.include_router(analytics.router)
 
 
 @app.exception_handler(AccessDenied)

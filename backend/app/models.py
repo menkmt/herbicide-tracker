@@ -850,3 +850,27 @@ class GeneratedMap(Base, TimestampMixin):
     bbox: Mapped[list | None] = mapped_column(JSON)
     basemap_attribution: Mapped[str | None] = mapped_column(Text)
     generated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class PageView(Base):
+    """One visit to one public page.
+
+    First-party, cookie-free traffic measurement. No IP address is stored:
+    ``visitor`` is a hash of address, browser and a salt that changes daily,
+    so a visitor can be counted once per day and nothing can be joined across
+    days or traced back to a person. Referrers keep only their host.
+    """
+
+    __tablename__ = "page_views"
+    __table_args__ = (
+        Index("ix_page_views_day", "day"),
+        Index("ix_page_views_day_path", "day", "path"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    day: Mapped[date] = mapped_column(Date, nullable=False)
+    path: Mapped[str] = mapped_column(String(512), nullable=False)
+    referrer_host: Mapped[str | None] = mapped_column(String(160))
+    visitor: Mapped[str] = mapped_column(String(32), nullable=False)
+    country: Mapped[str | None] = mapped_column(String(2))
