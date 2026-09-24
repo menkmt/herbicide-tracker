@@ -11,11 +11,11 @@ export async function generateMetadata({ params }: Props) {
   try {
     const chemical = await api.chemical(slug);
     return {
-      title: chemical.name,
+      title: `${chemical.name} — herbicide use on California forest land`,
       description:
         `${chemical.name} in California forestry herbicide applications: regulatory ` +
         `status, environmental information and every tracked application that used it.`,
-      alternates: { canonical: `/chemical/${slug}/` },
+      alternates: { canonical: `/chemical/${slug}` },
     };
   } catch {
     return { title: "Chemical not found" };

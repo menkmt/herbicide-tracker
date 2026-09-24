@@ -3,7 +3,7 @@ import { ParcelMap } from "@/components/ParcelMap";
 import { api } from "@/lib/api";
 
 export const metadata = {
-  title: "Map",
+  title: "Map of forestry herbicide applications in California",
   description: "Interactive map of forestry herbicide applications and the parcels associated with them.",
 };
 

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 
 export const metadata = {
-  title: "Chemicals",
+  title: "Herbicides and pesticides used on California forest land",
   description: "Active ingredients applied in the forestry herbicide applications this tracker covers.",
 };
 

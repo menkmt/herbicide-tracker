@@ -13,6 +13,10 @@ COPY . .
 RUN mkdir -p public
 ARG TRACKER_API_URL=http://api:8000
 ENV TRACKER_API_URL=$TRACKER_API_URL
+# Pages prerendered at build time bake this in; the running server reads it
+# again at request time. Passing it here keeps the two consistent.
+ARG TRACKER_PUBLIC_BASE_URL=http://localhost:3000
+ENV TRACKER_PUBLIC_BASE_URL=$TRACKER_PUBLIC_BASE_URL
 RUN npm run build
 
 FROM node:22-slim AS run

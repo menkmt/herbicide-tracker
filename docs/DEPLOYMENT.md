@@ -208,6 +208,28 @@ Then open `https://api.herbicidetracker.com/admin`, sign in, and drop in a
 county's documents. The public site is at
 `https://herbicidetracker.com`.
 
+## Getting found by search engines
+
+The site is server-rendered HTML with a sitemap, canonical URLs, structured
+data and a link-preview image, so there is nothing to bolt on. What makes it
+rank is published pages: every application, county and chemical page is a
+unique page with real text, and Google indexes those. An empty tracker has
+nothing to rank.
+
+Two things only the owner can do:
+
+1. **Google Search Console** (search.google.com/search-console): add
+   `herbicidetracker.com` as a Domain property, choose the DNS TXT method, add
+   the record at the registrar. Or choose the HTML-tag method and put only the
+   `content` value into `.env` as `TRACKER_GOOGLE_SITE_VERIFICATION`, then
+   `docker compose up -d --force-recreate web`. Once verified, submit
+   `https://herbicidetracker.com/sitemap.xml` under Sitemaps.
+2. **Bing Webmaster Tools** (bing.com/webmasters): import from Search Console.
+   Bing feeds DuckDuckGo and others.
+
+New pages appear in Google within days of being published; the sitemap is
+regenerated on every request so it is never stale.
+
 ## Locking the box down
 
 ```bash

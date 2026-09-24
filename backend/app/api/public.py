@@ -103,7 +103,7 @@ def _materials(session: Session, record_ids: list[int]) -> dict[str, list]:
                 {
                     "name": ingredient.name,
                     "slug": ingredient.slug,
-                    "url": f"/chemical/{ingredient.slug}/",
+                    "url": f"/chemical/{ingredient.slug}",
                     "is_california_restricted": ingredient.is_california_restricted,
                     "is_watchlisted": ingredient.is_watchlisted,
                     "products": [],
@@ -155,7 +155,7 @@ def _cluster_summary(session: Session, cluster: ApplicationCluster) -> dict[str,
         "flag_headline": flags.get("headline"),
         "has_regulatory_restriction": flags.get("has_regulatory_restriction", False),
         "has_watchlist_entry": flags.get("has_watchlist_entry", False),
-        "url": f"/application/{cluster.slug}/",
+        "url": f"/application/{cluster.slug}",
     }
 
 
@@ -185,7 +185,7 @@ def list_counties(session: Session = Depends(get_session), _: Principal = Depend
                 "first_date": first.isoformat() if first else None,
                 "last_date": last.isoformat() if last else None,
                 "acres": float(acres) if acres else 0.0,
-                "url": f"/applications/{slug}/",
+                "url": f"/applications/{slug}",
             }
             for name, slug, count, first, last, acres in rows
         ]
@@ -413,7 +413,7 @@ def list_chemicals(session: Session = Depends(get_session), _: Principal = Depen
                 "pesticide_type": row.pesticide_type,
                 "is_california_restricted": row.is_california_restricted,
                 "is_watchlisted": row.is_watchlisted,
-                "url": f"/chemical/{row.slug}/",
+                "url": f"/chemical/{row.slug}",
             }
             for row in rows
         ]

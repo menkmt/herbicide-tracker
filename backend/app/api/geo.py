@@ -96,7 +96,7 @@ def map_applications(
                     "apn": apn,
                     "flag_level": flags.get("highest_level"),
                     "flag_headline": flags.get("headline"),
-                    "url": f"/application/{slug}/",
+                    "url": f"/application/{slug}",
                 },
             }
         )
@@ -181,7 +181,7 @@ def radius_search(
                 "distance_miles": round(float(metres) / METRES_PER_MILE, 3),
                 "flag_level": flags.get("highest_level"),
                 "flag_headline": flags.get("headline"),
-                "url": f"/application/{slug}/",
+                "url": f"/application/{slug}",
             }
         )
 

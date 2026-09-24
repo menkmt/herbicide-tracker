@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ApplicationGrid } from "@/components/ApplicationGrid";
+import { JsonLd, breadcrumbs } from "@/components/JsonLd";
 import { Legend } from "@/components/Legend";
 import { api } from "@/lib/api";
 
@@ -15,11 +16,11 @@ export async function generateMetadata({ params }: Props) {
   const match = counties.find((c) => c.slug === county);
   if (!match) return { title: "County not found" };
   return {
-    title: `${match.name} County`,
+    title: `Herbicide applications in ${match.name} County, California`,
     description:
       `Forestry herbicide applications reported in ${match.name} County, California — ` +
       `${match.applications} applications covering ${Math.round(match.acres).toLocaleString()} reported acres.`,
-    alternates: { canonical: `/applications/${match.slug}/` },
+    alternates: { canonical: `/applications/${match.slug}` },
   };
 }
 
@@ -38,7 +39,8 @@ export default async function CountyPage({ params, searchParams }: Props) {
 
   return (
     <>
-      <h1>{match.name} County</h1>
+      <JsonLd data={breadcrumbs([["Applications", "/applications"], [`${match.name} County`, `/applications/${match.slug}`]])} />
+      <h1>Herbicide applications in {match.name} County</h1>
       <p className="lede">
         {match.applications} published application{match.applications === 1 ? "" : "s"},{" "}
         {Math.round(match.acres).toLocaleString()} acres reported treated

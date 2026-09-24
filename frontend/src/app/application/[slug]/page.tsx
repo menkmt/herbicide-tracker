@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FlagList } from "@/components/Flags";
+import { JsonLd, breadcrumbs } from "@/components/JsonLd";
 import { Legend } from "@/components/Legend";
 import { ParcelMap } from "@/components/ParcelMap";
 import { ApiError, api, formatAcres, formatDateRange } from "@/lib/api";
@@ -21,7 +22,7 @@ export async function generateMetadata({ params }: Props) {
         `${when} in ${application.county ?? "California"} by ` +
         `${application.method === "aerial" ? "aerial" : "ground"} application, ` +
         `using ${application.chemicals.slice(0, 3).join(", ")}.`,
-      alternates: { canonical: `/application/${slug}/` },
+      alternates: { canonical: `/application/${slug}` },
       openGraph: { title: `${application.title} — ${when}`, type: "article" },
     };
   } catch {
@@ -44,8 +45,15 @@ export default async function ApplicationPage({ params }: Props) {
     application.records.flatMap((r) => r.products.map((p) => p.name).filter(Boolean)),
   );
 
+  const crumbs: Array<[string, string]> = [["Applications", "/applications"]];
+  if (application.county) {
+    crumbs.push([`${application.county} County`, `/applications/${application.county.toLowerCase().replace(/\s+/g, "-")}`]);
+  }
+  crumbs.push([application.title, `/application/${slug}`]);
+
   return (
     <>
+      <JsonLd data={breadcrumbs(crumbs)} />
       <h1>{application.title}</h1>
       <p className="lede">
         {when} · {formatAcres(application.acres, application.acreage_is_partial)} acres

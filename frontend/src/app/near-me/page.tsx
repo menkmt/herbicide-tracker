@@ -3,7 +3,7 @@ import { ParcelMap } from "@/components/ParcelMap";
 import { api, formatAcres } from "@/lib/api";
 
 export const metadata = {
-  title: "Search near an address",
+  title: "Herbicide applications near an address",
   description: "Find forestry herbicide applications within a chosen distance of an address.",
   robots: { index: true, follow: true },
 };

@@ -4,7 +4,7 @@ import { Legend } from "@/components/Legend";
 import { api } from "@/lib/api";
 
 export const metadata = {
-  title: "All applications",
+  title: "All forestry herbicide applications in California",
   description: "Every published forestry herbicide application, filterable by county, chemical, company and method.",
 };
 
