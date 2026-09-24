@@ -283,3 +283,24 @@ table.records th { color: var(--muted); font-size: 0.72rem; text-transform: uppe
 .material.additive { background: var(--bg-2); }
 .material .what { font-size: 0.84rem; color: var(--muted); margin-top: 4px; }
 .unidentified { color: var(--orange); font-size: 0.84rem; }
+
+/* --- support / donate --------------------------------------------------- */
+
+.panel.donate { margin-top: 8px; text-align: center; padding: 28px 20px; }
+.donate-btn {
+  display: inline-block; padding: 14px 30px; border-radius: 100px; font-weight: 700; font-size: 1.05rem;
+  color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 10px 30px rgba(109, 141, 255, 0.35); text-decoration: none;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.donate-btn:hover { transform: translateY(-1px); filter: brightness(1.08); text-decoration: none; }
+header.site nav a.support { color: var(--cyan); }
+
+.support-strip {
+  margin-top: 56px; padding: 22px 24px; border-radius: var(--radius);
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.10), rgba(109, 141, 255, 0.08));
+  display: flex; gap: 18px; align-items: center; justify-content: space-between; flex-wrap: wrap;
+}
+.support-strip p { margin: 0; max-width: 62ch; }
+.support-strip strong { display: block; font-size: 1.05rem; margin-bottom: 2px; }

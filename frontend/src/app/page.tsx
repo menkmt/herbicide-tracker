@@ -95,6 +95,15 @@ export default async function HomePage() {
       <p style={{ marginTop: 16 }}>
         <Link href="/applications">See all applications →</Link>
       </p>
+
+      <div className="support-strip">
+        <p>
+          <strong>Free to use. Not free to run.</strong>
+          Records requests, a server, and the hours it takes to read county paperwork.
+          A one-time donation keeps this public.
+        </p>
+        <Link href="/support" className="donate-btn">Support this work</Link>
+      </div>
     </>
   );
 }
