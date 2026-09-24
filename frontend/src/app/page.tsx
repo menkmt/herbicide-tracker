@@ -93,7 +93,7 @@ export default async function HomePage() {
       <h2>Most recent applications</h2>
       <ApplicationGrid rows={recent.applications} />
       <p style={{ marginTop: 16 }}>
-        <Link href="/herbicide-tracker">See all applications →</Link>
+        <Link href="/applications">See all applications →</Link>
       </p>
     </>
   );

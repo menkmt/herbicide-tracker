@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: Props) {
         `${when} in ${application.county ?? "California"} by ` +
         `${application.method === "aerial" ? "aerial" : "ground"} application, ` +
         `using ${application.chemicals.slice(0, 3).join(", ")}.`,
-      alternates: { canonical: `/herbicide-application/${slug}/` },
+      alternates: { canonical: `/application/${slug}/` },
       openGraph: { title: `${application.title} — ${when}`, type: "article" },
     };
   } catch {

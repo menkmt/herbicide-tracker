@@ -6,7 +6,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = (process.env.TRACKER_PUBLIC_BASE_URL ?? "https://example.org").replace(/\/$/, "");
   const entries: MetadataRoute.Sitemap = [
     { url: `${base}/`, changeFrequency: "weekly", priority: 1 },
-    { url: `${base}/herbicide-tracker`, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${base}/applications`, changeFrequency: "weekly", priority: 0.9 },
     { url: `${base}/map`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${base}/chemical`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${base}/about`, changeFrequency: "yearly", priority: 0.5 },

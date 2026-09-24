@@ -7,7 +7,7 @@ export default function NotFound() {
       <p className="lede">
         That page does not exist, or the record it referred to has not been published.
       </p>
-      <p><Link href="/herbicide-tracker">Browse all applications →</Link></p>
+      <p><Link href="/applications">Browse all applications →</Link></p>
     </>
   );
 }

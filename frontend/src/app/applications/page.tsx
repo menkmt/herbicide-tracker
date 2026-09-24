@@ -96,7 +96,7 @@ export default async function AllApplicationsPage({ searchParams }: Props) {
           </select>
         </div>
         <button type="submit" className="primary">Apply filters</button>
-        <Link href="/herbicide-tracker" className="small">Clear</Link>
+        <Link href="/applications" className="small">Clear</Link>
       </form>
 
       <Legend compact />

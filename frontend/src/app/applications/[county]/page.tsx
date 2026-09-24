@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props) {
     description:
       `Forestry herbicide applications reported in ${match.name} County, California — ` +
       `${match.applications} applications covering ${Math.round(match.acres).toLocaleString()} reported acres.`,
-    alternates: { canonical: `/herbicide-tracker/${match.slug}/` },
+    alternates: { canonical: `/applications/${match.slug}/` },
   };
 }
 

@@ -33,7 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </span>
             </Link>
             <nav>
-              <Link href="/herbicide-tracker">Applications</Link>
+              <Link href="/applications">Applications</Link>
               <Link href="/map">Map</Link>
               <Link href="/chemical">Chemicals</Link>
               <Link href="/about">About the data</Link>
@@ -61,7 +61,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div>
               <h4>Explore</h4>
               <ul>
-                <li><Link href="/herbicide-tracker">All applications</Link></li>
+                <li><Link href="/applications">All applications</Link></li>
                 <li><Link href="/map">Map</Link></li>
                 <li><Link href="/chemical">Chemicals</Link></li>
                 <li><Link href="/near-me">Search near an address</Link></li>

@@ -12,7 +12,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/api/", "/near-me?", "/herbicide-tracker?"],
+        disallow: ["/api/", "/near-me?", "/applications?"],
       },
     ],
     sitemap: `${base}/sitemap.xml`,

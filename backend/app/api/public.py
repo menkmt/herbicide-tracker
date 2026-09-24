@@ -155,7 +155,7 @@ def _cluster_summary(session: Session, cluster: ApplicationCluster) -> dict[str,
         "flag_headline": flags.get("headline"),
         "has_regulatory_restriction": flags.get("has_regulatory_restriction", False),
         "has_watchlist_entry": flags.get("has_watchlist_entry", False),
-        "url": f"/herbicide-application/{cluster.slug}/",
+        "url": f"/application/{cluster.slug}/",
     }
 
 
@@ -185,7 +185,7 @@ def list_counties(session: Session = Depends(get_session), _: Principal = Depend
                 "first_date": first.isoformat() if first else None,
                 "last_date": last.isoformat() if last else None,
                 "acres": float(acres) if acres else 0.0,
-                "url": f"/herbicide-tracker/{slug}/",
+                "url": f"/applications/{slug}/",
             }
             for name, slug, count, first, last, acres in rows
         ]
