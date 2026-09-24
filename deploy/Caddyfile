@@ -15,6 +15,13 @@
 
 {
 	email {$CADDY_EMAIL}
+	# HTTP/1.1 and HTTP/2 only. Caddy otherwise advertises HTTP/3 over UDP
+	# 443, and a browser that remembers that advert keeps trying QUIC even
+	# when UDP is filtered somewhere on the path, failing with
+	# ERR_QUIC_PROTOCOL_ERROR instead of falling back. Nothing here needs h3.
+	servers {
+		protocols h1 h2
+	}
 }
 
 (hardening) {
