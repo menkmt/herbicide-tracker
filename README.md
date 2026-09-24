@@ -57,6 +57,9 @@ docker compose exec api alembic upgrade head
 * Public site: <http://localhost:3000>
 * API docs: <http://localhost:8000/api/docs>
 
+To put it on the internet, see `docs/DEPLOYMENT.md` — `deploy/enable-domain.sh`
+fronts the stack with Caddy and automatic HTTPS.
+
 Without Docker:
 
 ```bash

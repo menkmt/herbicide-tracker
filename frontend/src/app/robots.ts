@@ -6,7 +6,7 @@ import type { MetadataRoute } from "next";
  * infinite in combination, and of no value in an index.
  */
 export default function robots(): MetadataRoute.Robots {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://example.org";
+  const base = (process.env.TRACKER_PUBLIC_BASE_URL ?? "https://example.org").replace(/\/$/, "");
   return {
     rules: [
       {

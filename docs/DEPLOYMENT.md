@@ -135,7 +135,7 @@ TRACKER_ENVIRONMENT=production
 TRACKER_SECRET_KEY=$(openssl rand -hex 32)
 TRACKER_ADMIN_TOKEN=$(openssl rand -hex 32)
 POSTGRES_PASSWORD=$(openssl rand -hex 24)
-TRACKER_PUBLIC_BASE_URL=https://tracker.example.org
+TRACKER_PUBLIC_BASE_URL=https://herbicidetracker.com   # or leave for enable-domain.sh
 ```
 
 The application refuses to start in production with the development defaults
@@ -150,56 +150,80 @@ docker compose exec api alembic upgrade head
 docker compose ps        # every service should be healthy
 ```
 
-### 6. Put a reverse proxy in front
+### 6. Put it on a domain
 
-Caddy is the least work because it obtains and renews certificates on its own.
+The stack ships its own reverse proxy: a `caddy` service in the compose file
+that only starts under the `public` profile, so local development never
+touches ports 80/443. It obtains and renews certificates on its own.
 
-```bash
-apt-get install -y caddy
-```
+Create three DNS A records at your registrar, all pointing at the droplet:
 
-`/etc/caddy/Caddyfile`:
+| Record | Serves |
+| --- | --- |
+| `@` (the bare domain) | the public site |
+| `www` | redirects to the bare domain |
+| `api` | the API, its docs at `/api/docs`, and the admin dashboard at `/admin` |
 
-```
-tracker.example.org {
-    # The public site.
-    handle {
-        reverse_proxy 127.0.0.1:3000
-    }
-
-    # The API, for the WordPress plugin and any subscriber.
-    handle /api/* {
-        reverse_proxy 127.0.0.1:8000
-    }
-
-    # The admin dashboard. Restrict it by source address as well as by token:
-    # the token is the real control, but there is no reason for the whole
-    # internet to be able to reach an upload form.
-    handle /admin* {
-        @allowed remote_ip YOUR.OFFICE.IP.ADDRESS
-        handle @allowed {
-            reverse_proxy 127.0.0.1:8000
-        }
-        respond 404
-    }
-}
-```
+Two hostnames rather than one because the API and the Next.js site both own an
+`/api/` prefix. Then, on the droplet:
 
 ```bash
-systemctl reload caddy
+bash /opt/tracker/deploy/enable-domain.sh herbicidetracker.com you@example.com
 ```
 
-Point your DNS A record at the droplet first, or Caddy cannot complete the
-certificate challenge.
+It checks all three records resolve to this server (Caddy cannot get a
+certificate for a name that points elsewhere), writes `TRACKER_DOMAIN`,
+`TRACKER_PUBLIC_BASE_URL` and `COMPOSE_PROFILES=public` into `.env`, recreates
+the API and site so CORS and the sitemap pick up the new URL, starts Caddy and
+waits for HTTPS to answer. The email is where Let's Encrypt sends expiry
+warnings; it defaults to `admin@` the domain.
+
+If a record has not propagated yet the script says which one and changes
+nothing; re-run it in a few minutes.
+
+To restrict the admin dashboard by source address as well as by token, see the
+comment in `deploy/Caddyfile`. The token is the real control — the page holds
+no data and every action carries it — but there is no reason for the whole
+internet to reach an upload form if you have a fixed address.
+
+**Why ports 8000, 3000 and 5432 are bound to `127.0.0.1` in the compose
+file:** Docker programs iptables directly and its rules are consulted before
+ufw's, so a plain `"8000:8000"` would be reachable from the internet no matter
+what `ufw` says. Loopback binding is what actually closes them; ufw is a second
+layer. On the server the only public listener is Caddy.
 
 ### 7. Check it works
 
 ```bash
-curl -s https://tracker.example.org/api/meta | head
+curl -s https://api.herbicidetracker.com/api/meta | head
 ```
 
-Then open `https://tracker.example.org/admin`, paste the admin token, and drop
-in a county's documents.
+Then open `https://api.herbicidetracker.com/admin`, paste the admin token, and
+drop in a county's documents. The public site is at
+`https://herbicidetracker.com`.
+
+## Locking the box down
+
+```bash
+bash /opt/tracker/deploy/harden.sh
+```
+
+Once, after bootstrap. It turns off SSH password login (only if a key is
+already authorised, so it cannot lock you out), installs fail2ban for SSH,
+turns on automatic security updates, and then checks the thing that actually
+matters on a Docker host: that no container publishes a port on `0.0.0.0`
+other than Caddy's 80 and 443.
+
+What is protecting what, so you can judge it rather than take it on trust:
+
+| Asset | Control |
+| --- | --- |
+| The source code | Lives on the droplet and in the GitHub repository. Anyone with root SSH or repository access can read it; nothing on the public site exposes it. The site's JavaScript bundle is minified build output, not the source. Keep the repository private (Settings → Danger Zone) and the droplet key-only. |
+| The admin dashboard | A 64-hex-character random token, compared in constant time, sent with every action and never stored server-side in a cookie. The dashboard page itself holds no data. Optional source-IP allowlist in `deploy/Caddyfile`. |
+| The database | Loopback-only port, random password, reachable only from the containers and from the box itself. |
+| Uploaded documents | Written by a non-root container user; OCR runs as that user. Upload size capped at the proxy. |
+| Bulk extraction of the published data | Anonymous callers get 60 requests/minute and pages of at most 50; a paid key gets more. Search and map endpoints are `noindex`. This raises the cost of scraping; nothing served publicly can make it impossible, and Cloudflare in front (free tier) is the next step when it matters. |
+| The server | ufw plus loopback binding; SSH keys only; fail2ban; unattended security updates; containers run as non-root users. |
 
 ## Wiring up the GIS services
 
@@ -298,6 +322,9 @@ docker compose build
 docker compose up -d
 docker compose exec api alembic upgrade head
 ```
+
+`COMPOSE_PROFILES=public` in `.env` keeps Caddy in the set of services that
+`up` manages, so the proxy comes along without extra flags.
 
 Migrations are additive and have been round-tripped, but take a database dump
 before upgrading anyway.

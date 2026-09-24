@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import secrets
 import time
 from collections import defaultdict, deque
 from typing import Any
@@ -38,7 +39,8 @@ def get_principal(
     if not raw:
         return ANONYMOUS
 
-    if settings.admin_token and raw == settings.admin_token:
+    # Constant-time so response timing cannot leak how much of a guess matched.
+    if settings.admin_token and secrets.compare_digest(raw, settings.admin_token):
         return Principal(tier=Tier.ADMIN, subject="admin-token")
 
     row = session.scalar(

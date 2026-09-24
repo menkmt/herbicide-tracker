@@ -19,8 +19,8 @@
 #
 # What it does NOT do: obtain a TLS certificate or open the site to the
 # internet. It leaves the stack listening on localhost only, so you can check
-# it works before anything is publicly reachable. See docs/DEPLOYMENT.md for
-# the reverse proxy step.
+# it works before anything is publicly reachable. deploy/enable-domain.sh is
+# the separate, deliberate step that does that.
 
 set -euo pipefail
 
@@ -187,9 +187,12 @@ Next, in order:
 
      That is what lets the parcel maps and radius search be wired up.
 
-  2. Point a DNS A record at this droplet, then follow the reverse-proxy
-     section of docs/DEPLOYMENT.md to put Caddy in front with TLS. Until
-     then nothing is reachable from the internet, which is intentional.
+  2. Point DNS A records for @, www and api at this droplet, then:
+
+         bash /opt/tracker/deploy/enable-domain.sh yourdomain.com you@example.com
+
+     That starts Caddy with automatic HTTPS. Until then nothing is
+     reachable from the internet, which is intentional.
 
   3. Set up backups — docs/DEPLOYMENT.md has a nightly pg_dump cron.
 

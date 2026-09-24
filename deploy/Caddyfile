@@ -1,0 +1,72 @@
+# Reverse proxy for a public deployment. Loaded by the "caddy" compose service;
+# TRACKER_DOMAIN and CADDY_EMAIL come from .env.
+#
+# Two hostnames rather than path routing under one, because the API and the
+# Next.js site both own an /api/ prefix (the site's /api/map/* routes proxy
+# the map layers so the browser never needs an API key).
+#
+#   https://DOMAIN           the public site (Next.js)
+#   https://www.DOMAIN       redirects to the above
+#   https://api.DOMAIN       the API, its docs at /api/docs, and /admin
+#
+# Certificates are obtained and renewed automatically. The DNS A records for
+# all three names must point at this server before the first start, or the
+# ACME challenge fails and Caddy keeps retrying with backoff.
+
+{
+	email {$CADDY_EMAIL}
+}
+
+(hardening) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+	encode zstd gzip
+}
+
+www.{$TRACKER_DOMAIN} {
+	redir https://{$TRACKER_DOMAIN}{uri} permanent
+}
+
+{$TRACKER_DOMAIN} {
+	import hardening
+	reverse_proxy web:3000
+}
+
+api.{$TRACKER_DOMAIN} {
+	import hardening
+
+	# The dashboard page holds no data; the admin token, sent with every
+	# action, is the control. To restrict it by source address as well,
+	# replace the handle below with:
+	#
+	#   @office remote_ip 203.0.113.7
+	#   handle /admin* {
+	#       handle @office { reverse_proxy api:8000 }
+	#       respond 404
+	#   }
+	handle /admin* {
+		header X-Robots-Tag "noindex, nofollow"
+		reverse_proxy api:8000
+	}
+
+	# Uploads go to /api/admin/import; a scanned permit is ~6 MB, so 200 MB
+	# per request is generous for a batch and still bounds what a stranger
+	# can make the box swallow. Everything else on the API is small.
+	handle /api/admin/* {
+		request_body {
+			max_size 200MB
+		}
+		reverse_proxy api:8000
+	}
+
+	handle {
+		request_body {
+			max_size 1MB
+		}
+		reverse_proxy api:8000
+	}
+}
