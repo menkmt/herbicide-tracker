@@ -74,8 +74,12 @@ export default async function HomePage() {
       </div>
 
       <h2>Browse by county</h2>
+      <p className="muted" style={{ marginTop: -4 }}>
+        Statewide, all 58 counties. Records are published county by county as they are
+        obtained and checked. <Link href="/counties">See every county →</Link>
+      </p>
       {counties.counties.length === 0 ? (
-        <p className="muted">No counties have published applications yet.</p>
+        <p className="muted">The first county records are being prepared for publication.</p>
       ) : (
         <div className="cards">
           {counties.counties.map((county) => (

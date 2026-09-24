@@ -5,7 +5,7 @@ import type { FlagSummary } from "@/lib/api";
  *
  * The label always states its own reason — "California Restricted Material"
  * or "Editorial Watchlist" — because a watchlist entry is Protect
- * Lassen's editorial judgement and must never read as a legal restriction.
+ * the publisher's editorial judgement and must never read as a legal restriction.
  */
 export function FlagBadge({
   level,

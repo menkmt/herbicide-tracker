@@ -4,6 +4,7 @@ import { ApplicationGrid } from "@/components/ApplicationGrid";
 import { JsonLd, breadcrumbs } from "@/components/JsonLd";
 import { Legend } from "@/components/Legend";
 import { api } from "@/lib/api";
+import { countyName } from "@/lib/counties";
 
 interface Props {
   params: Promise<{ county: string }>;
@@ -14,7 +15,18 @@ export async function generateMetadata({ params }: Props) {
   const { county } = await params;
   const { counties } = await api.counties().catch(() => ({ counties: [] }));
   const match = counties.find((c) => c.slug === county);
-  if (!match) return { title: "County not found" };
+  if (!match) {
+    const name = countyName(county);
+    if (!name) return { title: "County not found" };
+    return {
+      title: `Herbicide applications in ${name} County, California`,
+      description:
+        `Forestry herbicide and pesticide applications in ${name} County, California, from ` +
+        `county pesticide use reports. Records for ${name} County are being obtained and ` +
+        `will be published here as they are checked.`,
+      alternates: { canonical: `/applications/${county}` },
+    };
+  }
   return {
     title: `Herbicide applications in ${match.name} County, California`,
     description:
@@ -30,7 +42,34 @@ export default async function CountyPage({ params, searchParams }: Props) {
 
   const { counties } = await api.counties().catch(() => ({ counties: [] }));
   const match = counties.find((c) => c.slug === county);
-  if (!match) notFound();
+  if (!match) {
+    // A real California county with nothing published yet gets a real page
+    // that says so, rather than a 404 that implies the county does not exist.
+    const name = countyName(county);
+    if (!name) notFound();
+    return (
+      <>
+        <JsonLd data={breadcrumbs([["Counties", "/counties"], [`${name} County`, `/applications/${county}`]])} />
+        <h1>Herbicide applications in {name} County</h1>
+        <p className="lede">
+          No applications have been published for {name} County yet. That means the
+          county&rsquo;s records have not been obtained and checked — not that nothing
+          has been sprayed.
+        </p>
+        <div className="notice">
+          Pesticide use reports are requested from each county agricultural commissioner
+          under the California Public Records Act and published here once they have been
+          read and checked against their source documents. {name} County is on that
+          list. If you already hold {name} County use reports, notices of intent or
+          restricted materials permits, <Link href="/contact">send them</Link> and they
+          will be added.
+        </div>
+        <p style={{ marginTop: 20 }}>
+          <Link href="/counties">See which counties have records published →</Link>
+        </p>
+      </>
+    );
+  }
 
   const page = Number(query.page ?? 1);
   const data = await api

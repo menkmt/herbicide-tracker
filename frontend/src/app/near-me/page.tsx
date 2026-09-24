@@ -44,7 +44,7 @@ export default async function NearMePage({ searchParams }: Props) {
         <div className="field" style={{ flex: "1 1 340px" }}>
           <label htmlFor="address">Address</label>
           <input id="address" name="address" defaultValue={address ?? ""} required
-                 placeholder="e.g. 175 Russell Ave, Susanville CA" />
+                 placeholder="e.g. 1500 Court St, Redding CA" />
         </div>
         <div className="field">
           <label htmlFor="miles">Radius</label>
