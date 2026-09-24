@@ -1,5 +1,9 @@
 import Link from "next/link";
 
+// Rendered per request, not at build time, so the values come from the
+// server's environment rather than whatever the build machine had.
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Support this work",
   description:

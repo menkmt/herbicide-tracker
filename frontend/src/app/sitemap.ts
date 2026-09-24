@@ -2,6 +2,10 @@ import type { MetadataRoute } from "next";
 import { api } from "@/lib/api";
 
 /** Public pages are meant to be indexable, so they are listed properly. */
+// Rendered per request, not at build time, so the values come from the
+// server's environment rather than whatever the build machine had.
+export const dynamic = "force-dynamic";
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = (process.env.TRACKER_PUBLIC_BASE_URL ?? "https://example.org").replace(/\/$/, "");
   const entries: MetadataRoute.Sitemap = [
