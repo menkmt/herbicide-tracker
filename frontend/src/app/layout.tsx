@@ -105,9 +105,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/applications">Applications</Link>
               <Link href="/map">Map</Link>
               <Link href="/chemical">Chemicals</Link>
-              <Link href="/about">About the data</Link>
+              <Link href="/report-card">Report card</Link>
+              <Link href="/about">About</Link>
               <Link href="/support" className="support">Support</Link>
-              <Link href="/contact">Contact</Link>
               <Link href="/near-me" className="cta">
                 Search near me
               </Link>
@@ -135,6 +135,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <ul>
                 <li><Link href="/applications">All applications</Link></li>
                 <li><Link href="/counties">All 58 counties</Link></li>
+                <li><Link href="/report-card">County report card</Link></li>
                 <li><Link href="/map">Map</Link></li>
                 <li><Link href="/chemical">Chemicals</Link></li>
                 <li><Link href="/near-me">Search near an address</Link></li>

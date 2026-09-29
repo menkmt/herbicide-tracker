@@ -64,6 +64,7 @@ def main(argv: list[str] | None = None) -> int:
         actor=settings.inquisitor_actor,
         open_campaign=settings.inquisitor_open_campaign and not args.no_campaign,
         auto_send=settings.inquisitor_auto_send,
+        request_inspections=settings.inquisitor_request_inspections,
         coverage_start=settings.coverage_start,
     )
 

@@ -160,13 +160,25 @@ class TestMonthlyCpraSync:
     def test_the_request_names_all_three_document_kinds(self):
         client = FakeInquisitor([])
         run_monthly_sync(
-            client, CpraSyncConfig(), last_watermark=None,
+            client, CpraSyncConfig(request_inspections=False), last_watermark=None,
             have_sha256=lambda s: False, ingest=lambda f: None,
         )
         command = client.created_command.lower()
         assert "pesticide use report" in command
         assert "notices of intent" in command
         assert "restricted materials permit" in command
+
+    def test_a_second_campaign_asks_for_inspection_records(self):
+        client = FakeInquisitor([])
+        result = run_monthly_sync(
+            client, CpraSyncConfig(), last_watermark=None,
+            have_sha256=lambda s: False, ingest=lambda f: None,
+        )
+        assert result.inspection_campaign is not None
+        command = client.created_command.lower()
+        assert "use monitoring inspection" in command
+        assert "agricultural commissioner" in command
+        assert any("inspection-records campaign" in note for note in result.notes)
 
     def test_a_later_run_overlaps_but_never_predates_coverage(self):
         client = FakeInquisitor([])
@@ -226,8 +238,9 @@ class TestMonthlyCpraSync:
             client, CpraSyncConfig(auto_send=True), last_watermark=None,
             have_sha256=lambda s: False, ingest=lambda f: None,
         )
-        assert client.sent == ["t1", "t2"]
-        assert result.targets_sent == 2
+        # Both campaigns — records and inspections — go to the same targets.
+        assert client.sent == ["t1", "t2", "t1", "t2"]
+        assert result.targets_sent == 4
 
     def test_the_watermark_does_not_advance_after_a_failure(self):
         """Otherwise the next run silently skips the failed production."""

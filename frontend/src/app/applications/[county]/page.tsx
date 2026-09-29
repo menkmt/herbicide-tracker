@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ApplicationGrid } from "@/components/ApplicationGrid";
 import { JsonLd, breadcrumbs } from "@/components/JsonLd";
 import { Legend } from "@/components/Legend";
+import { ReportCardPanel } from "@/components/ReportCard";
 import { api } from "@/lib/api";
 import { countyName } from "@/lib/counties";
 
@@ -72,9 +73,12 @@ export default async function CountyPage({ params, searchParams }: Props) {
   }
 
   const page = Number(query.page ?? 1);
-  const data = await api
-    .applications({ county, page, year: query.year, method: query.method, chemical: query.chemical })
-    .catch(() => ({ applications: [], total: 0, page: 1, pages: 0, page_size: 25 }));
+  const [data, card] = await Promise.all([
+    api
+      .applications({ county, page, year: query.year, method: query.method, chemical: query.chemical })
+      .catch(() => ({ applications: [], total: 0, page: 1, pages: 0, page_size: 25 })),
+    api.reportCard(county).catch(() => null),
+  ]);
 
   return (
     <>
@@ -90,6 +94,8 @@ export default async function CountyPage({ params, searchParams }: Props) {
 
       <p>
         <Link href={`/map?county=${county}`}>View these applications on the map →</Link>
+        {" · "}
+        <a href="#report-card">Oversight report card ↓</a>
       </p>
 
       <Legend compact />
@@ -100,6 +106,15 @@ export default async function CountyPage({ params, searchParams }: Props) {
           {page > 1 && <Link href={`?page=${page - 1}`}>← Previous</Link>}
           <span className="muted small">Page {data.page} of {data.pages}</span>
           {page < data.pages && <Link href={`?page=${page + 1}`}>Next →</Link>}
+        </div>
+      )}
+
+      {card && (
+        <div id="report-card">
+          <ReportCardPanel card={card} />
+          <p style={{ marginTop: 12 }}>
+            <Link href="/report-card">Compare every county →</Link>
+          </p>
         </div>
       )}
     </>

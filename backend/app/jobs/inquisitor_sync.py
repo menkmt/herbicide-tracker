@@ -59,6 +59,26 @@ DEFAULT_CAMPAIGN_COMMAND = (
     "provide them."
 )
 
+#: The second thing asked for each month: what the county did about it. Use
+#: monitoring inspections are how a county checks an application as it
+#: happens; the rest are how it checks the operator's paperwork and premises.
+#: Together they are the county's own account of its oversight.
+INSPECTION_CAMPAIGN_COMMAND = (
+    "Send California Public Records Act requests to every California county "
+    "agricultural commissioner for the following records covering {since} "
+    "through {until}: (1) all pesticide use monitoring inspection reports "
+    "(DPR form PR-ENF-006 or the county's equivalent) for applications on "
+    "forest, timberland, rights-of-way and non-agricultural sites, including the "
+    "date, site ID, permit number, operator, applicator, inspector and any "
+    "violations noted; (2) all mix/load, records, headquarters and field worker "
+    "safety inspection reports for the same operators and applicators; (3) the "
+    "county's inspection log, activity report or workplan summary listing "
+    "inspections performed by type and month; (4) all notices of proposed action, "
+    "compliance action letters and violation notices issued; and (5) the name "
+    "and appointment date of the current Agricultural Commissioner. Request "
+    "machine-readable formats where the county can provide them."
+)
+
 #: Overlap applied to the watermark so a production filed late, or backdated by
 #: the agency, is not missed between runs.
 WATERMARK_OVERLAP = timedelta(days=14)
@@ -79,12 +99,20 @@ class CpraSyncConfig:
     #: Restrict the sync to particular agencies (Inquisitor agency IDs).
     agency_ids: tuple[str, ...] = ()
     command_template: str = DEFAULT_CAMPAIGN_COMMAND
+    #: Also open a campaign for inspection and enforcement records.
+    request_inspections: bool = True
+    inspection_command_template: str = INSPECTION_CAMPAIGN_COMMAND
     #: The tracker covers 2020 onward, so a first run asks for everything from
     #: the coverage start rather than a rolling window.
     coverage_start: date = COVERAGE_START
 
     def build_command(self, since: date, until: date) -> str:
         return self.command_template.format(since=since.isoformat(), until=until.isoformat())
+
+    def build_inspection_command(self, since: date, until: date) -> str:
+        return self.inspection_command_template.format(
+            since=since.isoformat(), until=until.isoformat()
+        )
 
 
 @dataclass
@@ -104,6 +132,7 @@ class SyncResult:
     window_start: date
     window_end: date
     campaign: Campaign | None = None
+    inspection_campaign: Campaign | None = None
     targets_sent: int = 0
     files_seen: int = 0
     files_skipped_not_importable: int = 0
@@ -243,6 +272,32 @@ def run_monthly_sync(
                 f"{len(result.campaign.proposed_targets)} target(s) are waiting for a person to "
                 "approve sending (auto_send is off)"
             )
+
+        if config.request_inspections:
+            try:
+                inspection_campaign = client.create_campaign(
+                    config.build_inspection_command(window_start, today)
+                )
+                result.inspection_campaign = inspection_campaign
+                result.notes.append(
+                    f"opened inspection-records campaign "
+                    f"{inspection_campaign.number or inspection_campaign.id} with "
+                    f"{len(inspection_campaign.proposed_targets)} proposed target(s)"
+                )
+                if config.auto_send:
+                    for target in inspection_campaign.proposed_targets:
+                        target_id = str(target.get("id") or target.get("target_id") or "")
+                        if not target_id:
+                            continue
+                        try:
+                            client.send_campaign_target(inspection_campaign.id, target_id)
+                            result.targets_sent += 1
+                        except InquisitorError as exc:
+                            result.errors.append(
+                                f"could not send inspection campaign target {target_id}: {exc}"
+                            )
+            except InquisitorError as exc:
+                result.errors.append(f"could not open inspection-records campaign: {exc}")
 
     # --- 2. collect what agencies have already produced -------------------
     agencies: Iterable[str | None] = config.agency_ids or (None,)

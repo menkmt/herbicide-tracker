@@ -874,3 +874,91 @@ class PageView(Base):
     referrer_host: Mapped[str | None] = mapped_column(String(160))
     visitor: Mapped[str] = mapped_column(String(32), nullable=False)
     country: Mapped[str | None] = mapped_column(String(2))
+
+
+class CountyOfficial(Base, TimestampMixin):
+    """Who runs a county agricultural department: the current commissioner
+    and, kept as history, the ones before.
+
+    ``as_of`` is the date the name was last verified against a public source,
+    so a page can say "as of" rather than pretend to know today's roster.
+    """
+
+    __tablename__ = "county_officials"
+    __table_args__ = (Index("ix_county_officials_county", "county_id", "is_current"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    county_id: Mapped[int] = mapped_column(ForeignKey("counties.id"), nullable=False)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    title: Mapped[str] = mapped_column(String(120), default="Agricultural Commissioner")
+    #: commissioner | deputy | sealer | other
+    role: Mapped[str] = mapped_column(String(24), default="commissioner")
+    started_on: Mapped[date | None] = mapped_column(Date)
+    ended_on: Mapped[date | None] = mapped_column(Date)
+    is_current: Mapped[bool] = mapped_column(Boolean, default=True)
+    as_of: Mapped[date | None] = mapped_column(Date)
+    source_url: Mapped[str | None] = mapped_column(Text)
+    source_note: Mapped[str | None] = mapped_column(Text)
+    email: Mapped[str | None] = mapped_column(String(160))
+    phone: Mapped[str | None] = mapped_column(String(40))
+
+
+class CountyRecordsStatus(Base, TimestampMixin):
+    """Whether a county's records of one kind have been obtained.
+
+    This is what lets the site tell "zero inspections" apart from "no
+    inspection records have arrived yet". The two look identical in a table
+    and mean opposite things.
+    """
+
+    __tablename__ = "county_records_status"
+    __table_args__ = (UniqueConstraint("county_id", "record_kind", name="uq_county_records_kind"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    county_id: Mapped[int] = mapped_column(ForeignKey("counties.id"), nullable=False)
+    #: inspections | use_reports | notices_of_intent | permits | enforcement
+    record_kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    #: not_requested | requested | partial | received | county_reports_none | refused
+    status: Mapped[str] = mapped_column(String(24), default="not_requested")
+    requested_on: Mapped[date | None] = mapped_column(Date)
+    received_on: Mapped[date | None] = mapped_column(Date)
+    #: First and last dates the received records cover.
+    covers_from: Mapped[date | None] = mapped_column(Date)
+    covers_to: Mapped[date | None] = mapped_column(Date)
+    note: Mapped[str | None] = mapped_column(Text)
+    #: Inquisitor request or campaign reference, when it came through there.
+    request_reference: Mapped[str | None] = mapped_column(String(120))
+
+
+class Inspection(Base, TimestampMixin):
+    """One inspection a county agricultural department reported carrying out.
+
+    Exactly as the county reported it. Matching to an application is done at
+    query time by site ID and date, never written back here.
+    """
+
+    __tablename__ = "inspections"
+    __table_args__ = (
+        Index("ix_inspections_county_date", "county_id", "inspected_on"),
+        Index("ix_inspections_site", "site_id"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    county_id: Mapped[int] = mapped_column(ForeignKey("counties.id"), nullable=False)
+    source_file_id: Mapped[int | None] = mapped_column(ForeignKey("source_files.id"))
+    inspected_on: Mapped[date | None] = mapped_column(Date)
+    #: use_monitoring | mix_load | records | headquarters | field_worker | other
+    inspection_type: Mapped[str] = mapped_column(String(32), default="other")
+    inspection_type_raw: Mapped[str | None] = mapped_column(String(120))
+    document_number: Mapped[str | None] = mapped_column(String(64))
+    site_id: Mapped[str | None] = mapped_column(String(32))
+    mtrs: Mapped[str | None] = mapped_column(String(16))
+    permit_number: Mapped[str | None] = mapped_column(String(48))
+    operator_name: Mapped[str | None] = mapped_column(String(255))
+    applicator_name: Mapped[str | None] = mapped_column(String(255))
+    inspector_name: Mapped[str | None] = mapped_column(String(160))
+    #: in_compliance | violation | not_stated
+    outcome: Mapped[str] = mapped_column(String(24), default="not_stated")
+    violations_count: Mapped[int | None] = mapped_column(Integer)
+    notes: Mapped[str | None] = mapped_column(Text)
+    provenance: Mapped[dict | None] = mapped_column(JSON)

@@ -117,6 +117,78 @@
     <pre class="summary" id="summary"></pre>
   </div>
 
+  <h2>County oversight</h2>
+  <div class="panel">
+    <p class="small muted" style="margin-top:0">
+      What the public report card shows for a county: who runs its agricultural department,
+      whether its records have been obtained, and its inspection log. Type the county, then
+      use whichever part applies.
+    </p>
+    <div class="row">
+      <div>
+        <label for="rcCounty">County</label><br />
+        <input id="rcCounty" placeholder="e.g. Lassen" size="16" />
+      </div>
+      <button class="ghost" id="rcLoad">Show report card</button>
+    </div>
+    <div id="rcSummary" class="small muted" style="margin-top:12px"></div>
+
+    <h2>Agricultural Commissioner</h2>
+    <div class="row">
+      <div><label for="offName">Name</label><br /><input id="offName" size="24" placeholder="Full name" /></div>
+      <div><label for="offSince">Since</label><br /><input id="offSince" type="date" /></div>
+      <div><label for="offEmail">Email</label><br /><input id="offEmail" size="22" /></div>
+      <div><label for="offPhone">Phone</label><br /><input id="offPhone" size="14" /></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div style="flex:1 1 320px"><label for="offSource">Source URL (county website, board minutes…)</label><br /><input id="offSource" style="width:100%" /></div>
+      <button id="offSave">Save commissioner</button>
+      <span id="offStatus" class="small muted"></span>
+    </div>
+
+    <h2>Records status</h2>
+    <div class="row">
+      <div>
+        <label for="rsKind">Record type</label><br />
+        <select id="rsKind">
+          <option value="inspections">Inspection records</option>
+          <option value="use_reports">Pesticide use reports</option>
+          <option value="notices_of_intent">Notices of intent</option>
+          <option value="permits">Restricted materials permits</option>
+          <option value="enforcement">Enforcement actions</option>
+        </select>
+      </div>
+      <div>
+        <label for="rsStatus">Status</label><br />
+        <select id="rsStatus">
+          <option value="not_requested">Not requested</option>
+          <option value="requested">Requested</option>
+          <option value="partial">Partly received</option>
+          <option value="received">Received</option>
+          <option value="county_reports_none">County says it has none</option>
+          <option value="refused">County refused</option>
+        </select>
+      </div>
+      <div><label for="rsDate">Date</label><br /><input id="rsDate" type="date" /></div>
+      <div><label for="rsNote">Note</label><br /><input id="rsNote" size="28" placeholder="e.g. CPRA 24-118, partial production" /></div>
+      <button id="rsSave">Save status</button>
+      <span id="rsStatusMsg" class="small muted"></span>
+    </div>
+
+    <h2>Inspection log</h2>
+    <p class="small muted" style="margin-top:0">
+      A CSV or spreadsheet export of the county's inspections. Columns are matched by meaning
+      (date, type, site, permit, operator, applicator, inspector, result, violations); anything
+      unrecognised is kept in the notes. Loading a log marks inspection records as received.
+    </p>
+    <div class="row">
+      <input id="inspFile" type="file" accept=".csv,.txt,.tsv" />
+      <button id="inspImport">Load inspection log</button>
+      <span id="inspStatus" class="small muted"></span>
+    </div>
+    <pre class="summary" id="inspSummary" style="display:none"></pre>
+  </div>
+
   <h2>Review queue</h2>
   <div class="panel" id="queue"><p class="muted small">Loading…</p></div>
 
@@ -319,6 +391,89 @@ async function loadTraffic() {
 }
 
 $("refresh").addEventListener("click", () => { loadQueue(); loadTraffic(); });
+
+// --- county oversight ------------------------------------------------------
+const countySlug = () => $("rcCounty").value.trim().toLowerCase().replace(/\s+county$/, "").replace(/\s+/g, "-");
+
+async function postJson(url, body) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { ...headers(), "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.detail ? JSON.stringify(data.detail) : "Request failed");
+  return data;
+}
+
+$("rcLoad").addEventListener("click", async () => {
+  if (!authed() || !countySlug()) return;
+  try {
+    const response = await fetch(`/api/admin/counties/${countySlug()}/report-card`, { headers: headers() });
+    const card = await response.json();
+    if (!response.ok) throw new Error(card.detail || "Could not load");
+    const c = card.officials.commissioner;
+    const g = card.headline_grade;
+    $("rcSummary").innerHTML =
+      `<b>${escapeHtml(card.county.name)} County</b> — commissioner: ${c ? escapeHtml(c.name) : "<i>not recorded</i>"}; ` +
+      `grade: <b>${g.letter || "none"}</b> (${escapeHtml(g.basis)}); ` +
+      `${card.totals.applications} applications, ${card.totals.inspections} inspections on file; ` +
+      `inspection records: ${escapeHtml(card.records.inspections.status.replace(/_/g, " "))}.`;
+    if (c) { $("offName").value = c.name; $("offEmail").value = c.email || ""; $("offPhone").value = c.phone || "";
+             $("offSource").value = c.source_url || ""; $("offSince").value = c.started_on || ""; }
+  } catch (error) {
+    $("rcSummary").innerHTML = '<span class="err">' + escapeHtml(error.message) + "</span>";
+  }
+});
+
+$("offSave").addEventListener("click", async () => {
+  if (!authed() || !countySlug()) { $("offStatus").innerHTML = '<span class="err">Enter a county first.</span>'; return; }
+  try {
+    await postJson(`/api/admin/counties/${countySlug()}/official`, {
+      name: $("offName").value, started_on: $("offSince").value || null,
+      email: $("offEmail").value || null, phone: $("offPhone").value || null,
+      source_url: $("offSource").value || null,
+    });
+    $("offStatus").textContent = "Saved.";
+    $("rcLoad").click();
+  } catch (error) { $("offStatus").innerHTML = '<span class="err">' + escapeHtml(error.message) + "</span>"; }
+});
+
+$("rsSave").addEventListener("click", async () => {
+  if (!authed() || !countySlug()) { $("rsStatusMsg").innerHTML = '<span class="err">Enter a county first.</span>'; return; }
+  const status = $("rsStatus").value;
+  const dateValue = $("rsDate").value || null;
+  try {
+    await postJson(`/api/admin/counties/${countySlug()}/records-status`, {
+      record_kind: $("rsKind").value, status,
+      requested_on: status === "requested" ? dateValue : null,
+      received_on: (status === "received" || status === "partial") ? dateValue : null,
+      note: $("rsNote").value || null,
+    });
+    $("rsStatusMsg").textContent = "Saved.";
+    $("rcLoad").click();
+  } catch (error) { $("rsStatusMsg").innerHTML = '<span class="err">' + escapeHtml(error.message) + "</span>"; }
+});
+
+$("inspImport").addEventListener("click", async () => {
+  const file = $("inspFile").files[0];
+  if (!authed() || !countySlug() || !file) { $("inspStatus").innerHTML = '<span class="err">Enter a county and choose a file.</span>'; return; }
+  const body = new FormData();
+  body.append("file", file);
+  $("inspStatus").textContent = "Loading…";
+  try {
+    const response = await fetch(`/api/admin/counties/${countySlug()}/inspections/import`, { method: "POST", headers: headers(), body });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Import failed");
+    $("inspStatus").textContent = `${data.added} added, ${data.duplicates} already on file.`;
+    $("inspSummary").style.display = "block";
+    $("inspSummary").textContent =
+      `Columns matched:\n` + Object.entries(data.columns_matched).map(([k, v]) => `  ${k} ← ${v}`).join("\n") +
+      (data.columns_unmatched.length ? `\nKept as notes: ${data.columns_unmatched.join(", ")}` : "") +
+      (data.problems.length ? `\nProblems:\n  ${data.problems.join("\n  ")}` : "");
+    $("rcLoad").click();
+  } catch (error) { $("inspStatus").innerHTML = '<span class="err">' + escapeHtml(error.message) + "</span>"; }
+});
 
 $("publish").addEventListener("click", async () => {
   if (!authed()) { $("publishStatus").innerHTML = '<span class="err">Enter the admin token first.</span>'; return; }

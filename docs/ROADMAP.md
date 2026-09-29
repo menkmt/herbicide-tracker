@@ -70,3 +70,26 @@ rather than resolved by guesswork:
   implausible and suggests a transcription or unit error in the source.
 * All eleven products in the sample resolve only to seed data, so no
   active-ingredient totals are published as fact yet.
+
+
+## County oversight report card
+
+Built. Each county page carries a report card: the current Agricultural
+Commissioner by name (with the date the name was verified and its source),
+what the county reported (applications, sites, acres, restricted-material and
+aerial applications) against what it says it inspected, year by year, and a
+grade. `/report-card` ranks every county, worst first.
+
+The grade is computed only when the county's inspection records have been
+obtained: an absence of records is shown as exactly that, never as an F. The
+rubric (share of restricted-material or aerial applications with a
+use-monitoring inspection at the same site within a day of the dates) is
+printed beside every grade and lives in `backend/app/reportcard/grading.py`.
+
+Inspection records arrive two ways: the monthly Inquisitor sync now opens a
+second campaign asking every county for its use-monitoring, mix/load, records
+and headquarters inspection reports, its inspection log, its enforcement
+letters and the commissioner's name; and the admin dashboard takes a county's
+inspection log as a CSV with columns matched by meaning. A parser for
+individual inspection report forms (DPR PR-ENF-006 and county variants) is
+not written yet — it needs a real sample to be written against.

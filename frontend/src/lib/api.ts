@@ -217,8 +217,89 @@ export interface Meta {
   notes: string[];
 }
 
+export interface Official {
+  name: string;
+  title: string;
+  role: string;
+  started_on: string | null;
+  ended_on: string | null;
+  is_current: boolean;
+  as_of: string | null;
+  source_url: string | null;
+  source_note: string | null;
+  email: string | null;
+  phone: string | null;
+}
+
+export interface RecordsStatus {
+  status: string;
+  requested_on: string | null;
+  received_on: string | null;
+  covers_from: string | null;
+  covers_to: string | null;
+  note: string | null;
+}
+
+export interface GradeInfo {
+  letter: string | null;
+  coverage: number | null;
+  basis: string;
+}
+
+export interface ReportCardYear {
+  year: number;
+  applications: number;
+  priority_applications: number;
+  acres: number;
+  distinct_sites: number;
+  inspections: number;
+  use_monitoring_inspections: number;
+  priority_inspected: number;
+  violations_found: number;
+  coverage: number | null;
+  grade: GradeInfo;
+}
+
+export interface ReportCard {
+  county: { name: string; slug: string };
+  officials: { commissioner: Official | null; history: Official[] };
+  records: Record<string, RecordsStatus>;
+  headline_grade: GradeInfo;
+  headline_year: number | null;
+  years: ReportCardYear[];
+  totals: {
+    applications: number;
+    priority_applications: number;
+    acres: number;
+    inspections: number;
+    use_monitoring_inspections: number;
+    priority_inspected: number;
+    violations_found: number;
+  };
+  rubric: {
+    priority: string;
+    matched: string;
+    thresholds: string;
+    grades: Array<{ letter: string; min_coverage: number }>;
+    who: string;
+  };
+}
+
+export interface StatewideCard {
+  county: { name: string; slug: string };
+  commissioner: Official | null;
+  records: RecordsStatus;
+  headline_grade: GradeInfo;
+  headline_year: number | null;
+  totals: ReportCard["totals"];
+}
+
 export const api = {
   meta: () => request<Meta>("/api/meta"),
+  reportCard: (slug: string) =>
+    request<ReportCard>(`/api/counties/${encodeURIComponent(slug)}/report-card`),
+  statewideReportCard: () =>
+    request<{ counties: StatewideCard[]; rubric_thresholds: string }>("/api/report-card"),
   counties: () => request<{ counties: County[] }>("/api/counties"),
   applications: (params: Record<string, string | number | undefined>) => {
     const query = new URLSearchParams();

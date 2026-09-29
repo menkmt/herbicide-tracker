@@ -107,6 +107,8 @@ class Settings(BaseSettings):
     inquisitor_open_campaign: bool = True
     #: Sending records requests to agencies stays a human decision by default.
     inquisitor_auto_send: bool = False
+    #: Also ask each county for its inspection and enforcement records.
+    inquisitor_request_inspections: bool = True
     #: Day of the month the sync runs.
     inquisitor_sync_day: int = 1
 
