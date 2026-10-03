@@ -102,6 +102,23 @@ def candidate_domains(name: str) -> list[str]:
     return [f"{stem}{tld}" for stem in stems[:5] for tld in TLDS[:2]]
 
 
+#: Excluded in the query itself, so the search spends its results on company
+#: websites rather than social profiles, directories and data brokers. The
+#: same hosts are also filtered from whatever comes back.
+EXCLUDED_IN_QUERY = (
+    "facebook.com", "linkedin.com", "instagram.com", "twitter.com", "x.com",
+    "youtube.com", "yelp.com", "bbb.org", "mapquest.com", "yellowpages.com",
+    "manta.com", "bizapedia.com", "zoominfo.com", "signalhire.com",
+    "rocketreach.co", "dnb.com", "crunchbase.com", "indeed.com", "glassdoor.com",
+)
+
+
+def search_query(name: str, county: str | None = None) -> str:
+    terms = [f'"{name}"', f"{county} County" if county else "", "California"]
+    terms += [f"-site:{host}" for host in EXCLUDED_IN_QUERY]
+    return " ".join(t for t in terms if t)
+
+
 @dataclass
 class SiteFinding:
     company: str
@@ -136,16 +153,19 @@ class WebsiteFinder:
     # --- discovery ----------------------------------------------------------
 
     def candidates(self, name: str, license_number: str | None, county: str | None) -> list[str]:
-        urls = [f"https://{d}" for d in candidate_domains(name)]
+        guesses = [f"https://{d}" for d in candidate_domains(name)]
+        found: list[str] = []
         if self.search is not None:
-            query = f'"{name}"' + (f" {county} County" if county else "") + " California"
             try:
-                for hit in self.search.search(query, limit=6):
+                # One search per company; the results come back in rank order
+                # and are tried before the guessed addresses.
+                for hit in self.search.search(search_query(name, county), limit=10):
                     host = urlsplit(hit.url).hostname or ""
                     if host and not any(d in host for d in _DIRECTORY_HOSTS):
-                        urls.insert(0, f"https://{host}")
+                        found.append(f"https://{host}")
             except Exception:  # noqa: BLE001 - search is a bonus, never a blocker
                 pass
+        urls = found + guesses
         seen: list[str] = []
         for u in urls:
             if u not in seen:

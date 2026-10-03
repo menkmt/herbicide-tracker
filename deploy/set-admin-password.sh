@@ -61,6 +61,22 @@ else
     warn "the proxy does not have the new hash yet - check: docker compose logs caddy --tail 30"
 fi
 
+# Prove it end to end: ask the live site for the admin page with these
+# credentials, exactly as a browser would.
+DOMAIN=$(grep '^TRACKER_DOMAIN=' .env | cut -d= -f2)
+if [ -n "$DOMAIN" ]; then
+    sleep 3
+    CODE=$(curl -s -o /dev/null -w '%{http_code}' -u "admin:$PASSWORD" "https://api.$DOMAIN/admin" || echo 000)
+    if [ "$CODE" = "200" ]; then
+        printf '    LOGIN TEST PASSED: https://api.%s/admin accepts admin / your password\n' "$DOMAIN"
+        printf '    If your browser still refuses it, it is using an old saved login:\n'
+        printf '    open the page in a private/incognito window.\n'
+    else
+        warn "LOGIN TEST FAILED (HTTP $CODE). Paste this output to Claude, plus:"
+        warn "  docker compose logs caddy --tail 20"
+    fi
+fi
+
 cat <<EOT
 
 Done. Sign in at https://api.$(grep '^TRACKER_DOMAIN=' .env | cut -d= -f2)/admin
