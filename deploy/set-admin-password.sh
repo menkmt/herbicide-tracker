@@ -28,7 +28,9 @@ cd "$INSTALL_DIR" || die "no checkout at $INSTALL_DIR"
 [ -f .env ] || die "no .env — run deploy/bootstrap-droplet.sh first"
 
 log "Hashing"
-HASH=$(printf '%s' "$PASSWORD" | docker run --rm -i caddy:2-alpine caddy hash-password 2>/dev/null | tr -d '\r\n')
+# --plaintext rather than stdin: hash-password prompts twice when it thinks
+# it has a terminal, and reading a pipe is not reliable across versions.
+HASH=$(docker run --rm caddy:2-alpine caddy hash-password --plaintext "$PASSWORD" 2>/dev/null | tr -d '\r\n')
 case "$HASH" in
     '$2'*) ;;
     *) die "hashing failed: $HASH" ;;
@@ -50,6 +52,13 @@ if grep -q "^COMPOSE_PROFILES=.*public" .env; then
     docker compose up -d --force-recreate caddy
     sleep 3
     docker compose ps caddy
+fi
+
+# Show what Caddy actually received, so a mismatch is visible immediately.
+if docker compose exec -T caddy printenv TRACKER_ADMIN_BASIC_HASH 2>/dev/null | grep -qF "$HASH"; then
+    printf '    the proxy has the new login\n'
+else
+    warn "the proxy does not have the new hash yet - check: docker compose logs caddy --tail 30"
 fi
 
 cat <<EOT
