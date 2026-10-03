@@ -83,7 +83,15 @@ async def import_files(
                 shutil.copyfileobj(upload.file, handle)
             paths.append(destination)
 
-        summary = ingest_files(session, paths, county=county, label=label)
+        try:
+            summary = ingest_files(session, paths, county=county, label=label)
+        except Exception as exc:  # noqa: BLE001 - report it to the dashboard, not a bare 500
+            session.rollback()
+            logger.exception("import batch failed")
+            raise HTTPException(
+                500, f"The import stopped with an error ({type(exc).__name__}: {exc}). "
+                     "Nothing from this batch was saved. Send this message to support."
+            ) from exc
 
     # Put the new records on the map straight away. Best effort: if the PLSS
     # service is slow or down, the import still succeeds and the next deploy

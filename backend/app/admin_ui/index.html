@@ -353,8 +353,12 @@ $("import").addEventListener("click", async () => {
 
   try {
     const response = await fetch("/api/admin/import", { method: "POST", headers: headers(), body });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.detail || "Import failed");
+    const raw = await response.text();
+    let data;
+    try { data = JSON.parse(raw); } catch {
+      throw new Error(`The server answered ${response.status}: ${raw.slice(0, 300) || "no details"}`);
+    }
+    if (!response.ok) throw new Error(data.detail || `Import failed (${response.status})`);
     $("summary").textContent = data.text;
     $("result").style.display = "block";
     $("status").textContent = "Done.";

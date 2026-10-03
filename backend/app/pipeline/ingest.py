@@ -492,126 +492,131 @@ def ingest_files(
         display = item.display_name
         outcome = FileOutcome(filename=display, sha256="")
         outcome.notes.extend(item.notes)
+        mark = len(new_records)
         try:
-            digest = sha256_file(path)
-            outcome.sha256 = digest
+            # Each file in its own savepoint: a file that fails part-way leaves
+            # nothing behind and cannot break the rest of the batch.
+            with session.begin_nested():
+                digest = sha256_file(path)
+                outcome.sha256 = digest
 
-            existing = session.scalar(select(SourceFile).where(SourceFile.sha256 == digest))
-            if existing is not None:
-                outcome.status = "duplicate"
-                outcome.notes.append(
-                    f"already imported on {existing.created_at:%Y-%m-%d} as {existing.filename}"
-                )
-                summary.files_duplicate += 1
-                summary.files.append(outcome)
-                continue
-
-            result: ExtractionResult = extract_file(
-                item.readable, county=county, sha256=digest, source_name=display
-            )
-            outcome.profile = result.profile
-            outcome.notes.extend(result.notes)
-
-            if not result.records and not result.permits:
-                outcome.status = "failed"
-                outcome.error = (
-                    result.issues[0].detail if result.issues else "nothing could be extracted"
-                )
-                summary.files_failed += 1
-                summary.files.append(outcome)
-                continue
-
-            metadata = (cpra_metadata or {}).get(path.name, {})
-            # Where Inquisitor already holds the original under a documented
-            # chain of custody, the tracker keeps a reference and the text
-            # rather than a second copy of the bytes.
-            storage_mode = decide_storage(origin, inquisitor_url=metadata.get("origin_url"))
-            storage_key = (
-                storage.put(path, sha256=digest, filename=path.name)
-                if storage_mode == "local"
-                else ""
-            )
-            stored_text = prepare_text(getattr(result, "document_text", None))
-            source_file = SourceFile(
-                filename=display[:512],
-                sha256=digest,
-                byte_size=path.stat().st_size,
-                storage_mode=storage_mode,
-                storage_key=storage_key,
-                origin_url=metadata.get("origin_url"),
-                extracted_text=stored_text.text if stored_text else None,
-                text_bytes=stored_text.byte_size if stored_text else None,
-                profile=result.profile,
-                document_kind=(
-                    DocumentKind.PERMIT if result.permits else DocumentKind.USE_REPORT
-                ),
-                origin=origin,
-                processing_state="processed",
-                processing_notes={"notes": result.notes},
-                used_ocr=any("OCR'd" in note for note in result.notes),
-                cpra_agency=metadata.get("agency"),
-                cpra_request_number=metadata.get("request_number"),
-                cpra_production=metadata.get("production"),
-                inquisitor_source_id=metadata.get("source_id"),
-                received_at=datetime.now(UTC),
-            )
-            county_row = get_or_create_county(session, county or result.records[0].county_name
-                                              if result.records else county)
-            source_file.county_id = county_row.id if county_row else None
-            session.add(source_file)
-            session.flush()
-
-            for permit in result.permits:
-                permit_county = get_or_create_county(session, permit.county_name or county)
-                permit_row = persist_permit(
-                    session, permit, source_file=source_file, county=permit_county
-                )
-                summary.permits_extracted += 1
-                summary.permit_sites += len(permit.sites)
-                outcome.permits += 1
-                for issue in permit.issues:
-                    if issue.severity == "review":
-                        _add_review(
-                            session,
-                            entity_type="permit",
-                            entity_id=permit_row.id,
-                            reason=issue.code,
-                            detail=issue.detail,
-                            batch_id=batch.id,
-                        )
-                        summary.review_reasons[issue.code] = (
-                            summary.review_reasons.get(issue.code, 0) + 1
-                        )
-
-            duplicates_here = 0
-            for record in result.records:
-                record_county = get_or_create_county(
-                    session, record.county_name or county
-                )
-                summary.records_extracted += 1
-                if find_duplicate(session, record,
-                                  record_county.id if record_county else None,
-                                  source_file_id=source_file.id) is not None:
-                    # The same report from another document: counted, not
-                    # stored twice, and never added to the totals again.
-                    duplicates_here += 1
-                    summary.records_duplicate += 1
+                existing = session.scalar(select(SourceFile).where(SourceFile.sha256 == digest))
+                if existing is not None:
+                    outcome.status = "duplicate"
+                    outcome.notes.append(
+                        f"already imported on {existing.created_at:%Y-%m-%d} as {existing.filename}"
+                    )
+                    summary.files_duplicate += 1
+                    summary.files.append(outcome)
                     continue
-                row = persist_record(
-                    session, record, source_file=source_file, county=record_county
-                )
-                new_records.append((record, row))
-                outcome.records += 1
-                if not record.in_coverage:
-                    summary.out_of_coverage += 1
 
-            if duplicates_here:
-                outcome.notes.append(
-                    f"{duplicates_here} record(s) were already on file from another document "
-                    "and were not added again"
+                result: ExtractionResult = extract_file(
+                    item.readable, county=county, sha256=digest, source_name=display
                 )
-            summary.files_processed += 1
+                outcome.profile = result.profile
+                outcome.notes.extend(result.notes)
+
+                if not result.records and not result.permits:
+                    outcome.status = "failed"
+                    outcome.error = (
+                        result.issues[0].detail if result.issues else "nothing could be extracted"
+                    )
+                    summary.files_failed += 1
+                    summary.files.append(outcome)
+                    continue
+
+                metadata = (cpra_metadata or {}).get(path.name, {})
+                # Where Inquisitor already holds the original under a documented
+                # chain of custody, the tracker keeps a reference and the text
+                # rather than a second copy of the bytes.
+                storage_mode = decide_storage(origin, inquisitor_url=metadata.get("origin_url"))
+                storage_key = (
+                    storage.put(path, sha256=digest, filename=path.name)
+                    if storage_mode == "local"
+                    else ""
+                )
+                stored_text = prepare_text(getattr(result, "document_text", None))
+                source_file = SourceFile(
+                    filename=display[:512],
+                    sha256=digest,
+                    byte_size=path.stat().st_size,
+                    storage_mode=storage_mode,
+                    storage_key=storage_key,
+                    origin_url=metadata.get("origin_url"),
+                    extracted_text=stored_text.text if stored_text else None,
+                    text_bytes=stored_text.byte_size if stored_text else None,
+                    profile=result.profile,
+                    document_kind=(
+                        DocumentKind.PERMIT if result.permits else DocumentKind.USE_REPORT
+                    ),
+                    origin=origin,
+                    processing_state="processed",
+                    processing_notes={"notes": result.notes},
+                    used_ocr=any("OCR'd" in note for note in result.notes),
+                    cpra_agency=metadata.get("agency"),
+                    cpra_request_number=metadata.get("request_number"),
+                    cpra_production=metadata.get("production"),
+                    inquisitor_source_id=metadata.get("source_id"),
+                    received_at=datetime.now(UTC),
+                )
+                county_row = get_or_create_county(session, county or result.records[0].county_name
+                                                  if result.records else county)
+                source_file.county_id = county_row.id if county_row else None
+                session.add(source_file)
+                session.flush()
+
+                for permit in result.permits:
+                    permit_county = get_or_create_county(session, permit.county_name or county)
+                    permit_row = persist_permit(
+                        session, permit, source_file=source_file, county=permit_county
+                    )
+                    summary.permits_extracted += 1
+                    summary.permit_sites += len(permit.sites)
+                    outcome.permits += 1
+                    for issue in permit.issues:
+                        if issue.severity == "review":
+                            _add_review(
+                                session,
+                                entity_type="permit",
+                                entity_id=permit_row.id,
+                                reason=issue.code,
+                                detail=issue.detail,
+                                batch_id=batch.id,
+                            )
+                            summary.review_reasons[issue.code] = (
+                                summary.review_reasons.get(issue.code, 0) + 1
+                            )
+
+                duplicates_here = 0
+                for record in result.records:
+                    record_county = get_or_create_county(
+                        session, record.county_name or county
+                    )
+                    summary.records_extracted += 1
+                    if find_duplicate(session, record,
+                                      record_county.id if record_county else None,
+                                      source_file_id=source_file.id) is not None:
+                        # The same report from another document: counted, not
+                        # stored twice, and never added to the totals again.
+                        duplicates_here += 1
+                        summary.records_duplicate += 1
+                        continue
+                    row = persist_record(
+                        session, record, source_file=source_file, county=record_county
+                    )
+                    new_records.append((record, row))
+                    outcome.records += 1
+                    if not record.in_coverage:
+                        summary.out_of_coverage += 1
+
+                if duplicates_here:
+                    outcome.notes.append(
+                        f"{duplicates_here} record(s) were already on file from another document "
+                        "and were not added again"
+                    )
+                summary.files_processed += 1
         except Exception as exc:  # noqa: BLE001 - one bad file must not stop a batch
+            del new_records[mark:]
             logger.exception("import failed for %s", path)
             outcome.status = "failed"
             outcome.error = str(exc)
