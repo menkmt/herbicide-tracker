@@ -357,6 +357,7 @@ $("import").addEventListener("click", async () => {
     $("result").style.display = "block";
     $("status").textContent = "Done.";
     files = []; renderFiles(); loadQueue();
+    $("picker").value = ""; $("label").value = "";
   } catch (error) {
     $("status").innerHTML = '<span class="err">' + escapeHtml(error.message) + "</span>";
   } finally {
@@ -516,6 +517,7 @@ $("phUpload").addEventListener("click", async () => {
     const data = await response.json();
     if (!response.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Upload failed");
     $("phStatus").textContent = `Saved for ${data.person}. It shows on their applications now.`;
+    ["phName", "phEmployer", "phSource", "phFile"].forEach((id) => { $(id).value = ""; });
   } catch (error) { $("phStatus").innerHTML = '<span class="err">' + escapeHtml(error.message) + "</span>"; }
 });
 
@@ -530,6 +532,7 @@ $("wsImport").addEventListener("click", async () => {
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || "Import failed");
     $("wsStatus").textContent = `${data.added} added, ${data.updated} updated, ${data.skipped} skipped (no coordinates or outside California).`;
+    $("wsFile").value = "";
   } catch (error) { $("wsStatus").innerHTML = '<span class="err">' + escapeHtml(error.message) + "</span>"; }
 });
 
@@ -576,6 +579,7 @@ $("offSave").addEventListener("click", async () => {
       source_url: $("offSource").value || null,
     });
     $("offStatus").textContent = "Saved.";
+    ["offName", "offSince", "offEmail", "offPhone", "offSource"].forEach((id) => { $(id).value = ""; });
     $("rcLoad").click();
   } catch (error) { $("offStatus").innerHTML = '<span class="err">' + escapeHtml(error.message) + "</span>"; }
 });
@@ -592,6 +596,7 @@ $("rsSave").addEventListener("click", async () => {
       note: $("rsNote").value || null,
     });
     $("rsStatusMsg").textContent = "Saved.";
+    ["rsDate", "rsNote"].forEach((id) => { $(id).value = ""; });
     $("rcLoad").click();
   } catch (error) { $("rsStatusMsg").innerHTML = '<span class="err">' + escapeHtml(error.message) + "</span>"; }
 });
@@ -607,6 +612,7 @@ $("inspImport").addEventListener("click", async () => {
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || "Import failed");
     $("inspStatus").textContent = `${data.added} added, ${data.duplicates} already on file.`;
+    $("inspFile").value = "";
     $("inspSummary").style.display = "block";
     $("inspSummary").textContent =
       `Columns matched:\n` + Object.entries(data.columns_matched).map(([k, v]) => `  ${k} ← ${v}`).join("\n") +
