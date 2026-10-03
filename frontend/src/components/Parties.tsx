@@ -60,7 +60,6 @@ export function Parties({ parties }: { parties: PartiesData | undefined }) {
             <div className="party-name">{operator.permit_number}</div>
             {operator.operator_id && <div className="muted small">Operator ID {operator.operator_id}</div>}
             {sameAsOwner && <Contact c={operator} />}
-            {operator.phone_source && <div className="muted small">Phone from the {operator.phone_source}</div>}
           </div>
         )}
         {people.map((p) => (
@@ -87,7 +86,7 @@ export function Parties({ parties }: { parties: PartiesData | undefined }) {
       {(qals.length > 0 || contractors.length > 0) && (
         <table className="records" style={{ marginTop: 14 }}>
           <thead>
-            <tr><th>Licensed on the permit</th><th>Licence</th><th>Type</th><th>Expires</th><th>Phone</th></tr>
+            <tr><th>Licensed on the permit</th><th>Licence</th><th>Type</th><th>Expires</th><th>Website / phone</th></tr>
           </thead>
           <tbody>
             {qals.map((q) => (
@@ -105,7 +104,14 @@ export function Parties({ parties }: { parties: PartiesData | undefined }) {
                 <td>{c.license}</td>
                 <td className="small">Pest control business</td>
                 <td className="small">{c.expires ?? "—"}</td>
-                <td className="small">{c.phone ?? "—"}</td>
+                <td className="small">
+                  {c.website && (
+                    <a href={c.website.startsWith("http") ? c.website : `https://${c.website}`}
+                       rel="nofollow noopener">{c.website.replace(/^https?:\/\//, "")}</a>
+                  )}
+                  {c.website && c.phone && <br />}
+                  {c.phone ?? (c.website ? null : "—")}
+                </td>
               </tr>
             ))}
           </tbody>

@@ -2,9 +2,12 @@
 
 Businesses come from the permits (the operator, the pest control businesses
 on the contact list), the use reports (applicator businesses) and the
-applications (property owners). Each gets a company record carrying the
-phone its permit lists; then its website is found and read (see
-app.providers.enrichment.website).
+applications (property owners). Each gets a company record; then its website
+is found and read (see app.providers.enrichment.website).
+
+The phone and email shown publicly come from the company's own website. The
+phone numbers on county permits are used only to confirm the website belongs
+to the right business, and are not displayed.
 
     python -m app.jobs.enrich_companies             # up to 40 not checked lately
     python -m app.jobs.enrich_companies --all       # everything, ignoring recency
@@ -61,8 +64,7 @@ def _slug(session: Session, name: str) -> str:
     return slug
 
 
-def ensure_company(session: Session, name: str | None, *, phone: str | None = None,
-                   phone_source: str | None = None, license_number: str | None = None,
+def ensure_company(session: Session, name: str | None, *, license_number: str | None = None,
                    business_type: str | None = None, report: EnrichReport | None = None
                    ) -> Company | None:
     if not name or not name.strip():
@@ -77,8 +79,6 @@ def ensure_company(session: Session, name: str | None, *, phone: str | None = No
         session.flush()
         if report:
             report.companies_created += 1
-    if phone and not row.phone:
-        row.phone, row.phone_source = phone, phone_source
     if license_number and not row.dpr_license:
         row.dpr_license = license_number
     if business_type and not row.business_type:
@@ -88,24 +88,16 @@ def ensure_company(session: Session, name: str | None, *, phone: str | None = No
 
 def collect_companies(session: Session, report: EnrichReport) -> None:
     """Make sure every business named in the records has a company row."""
-    # Newest permits first, so a company's displayed phone is its current one.
     for permit in session.scalars(
         select(Permit).order_by(Permit.expires_on.desc().nullslast())
     ).all():
         contacts = session.scalars(
             select(PermitContact).where(PermitContact.permit_id == permit.id)
         ).all()
-        primary = next((c for c in contacts if (c.contact_type or "").upper()
-                        in ("AR", "GROWER-PERMITTEE") and c.phone), None)
-        source = f"permit {permit.permit_number} contact list"
-        ensure_company(session, permit.operator_name,
-                       phone=primary.phone if primary else None,
-                       phone_source=source if primary else None,
-                       business_type="operator", report=report)
+        ensure_company(session, permit.operator_name, business_type="operator", report=report)
         for c in contacts:
             if c.is_business and BUSINESS_CONTACT.search(c.contact_type or ""):
-                ensure_company(session, c.name, phone=c.phone,
-                               phone_source=f"permit {permit.permit_number} contact list",
+                ensure_company(session, c.name,
                                license_number=c.license_number if re.search(
                                    r"PC[BM]|pest control", c.contact_type or "", re.I) else None,
                                business_type="pest_control_business" if re.search(
@@ -126,8 +118,9 @@ def collect_companies(session: Session, report: EnrichReport) -> None:
 
 
 def known_phones(session: Session, company: Company) -> list[str]:
-    """Every phone a county permit has listed for this business."""
-    phones = [company.phone] if company.phone else []
+    """Every phone a county permit has listed for this business. Used only to
+    confirm a website is the right company; never displayed."""
+    phones: list[str] = []
     for c in session.scalars(select(PermitContact).where(PermitContact.phone.is_not(None))):
         if c.name and company_key(c.name) == company.name_key and c.phone not in phones:
             phones.append(c.phone)
@@ -156,9 +149,9 @@ def enrich(session: Session, *, limit: int = 40, everything: bool = False,
         report.checked += 1
         if finding.status == "verified":
             company.website = finding.website
-            company.email = finding.email or company.email
-            if not company.phone:
-                company.phone, company.phone_source = finding.phone, "company website"
+            company.email = finding.email
+            company.phone = finding.phone
+            company.phone_source = "company website" if finding.phone else None
             company.contact_source_url = finding.website
             company.contact_evidence = finding.evidence
             company.contact_review_state = "auto_verified"
@@ -166,6 +159,8 @@ def enrich(session: Session, *, limit: int = 40, everything: bool = False,
         elif finding.status == "likely":
             company.website = finding.website
             company.email = finding.email
+            company.phone = finding.phone
+            company.phone_source = "company website" if finding.phone else None
             company.contact_source_url = finding.website
             company.contact_evidence = finding.evidence + (
                 f"; phone(s) on the site: {', '.join(finding.phones)}" if finding.phones else "")

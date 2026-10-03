@@ -67,16 +67,17 @@ def _company(session: Session, name: str | None) -> dict | None:
     row = session.scalar(select(Company).where(Company.name_key == company_key(name)))
     if row is None:
         return {"name": name}
-    # Web-found details publish only when the site showed the permit's phone
-    # number, or an administrator approved them.
+    # Website, phone and email all come from the company's own site, and
+    # publish only once the site was confirmed (it shows a phone number a
+    # county permit lists for the business) or an administrator approved it.
     confirmed = row.contact_review_state in ("auto_verified", "approved")
     return {
         "name": row.name,
         "slug": row.slug,
         "website": row.website if confirmed else None,
         "email": row.email if confirmed else None,
-        "phone": row.phone,
-        "phone_source": row.phone_source,
+        "phone": row.phone if confirmed else None,
+        "phone_source": row.phone_source if confirmed else None,
         "contact_evidence": row.contact_evidence if confirmed else None,
         "address": row.business_address,
         "license": row.dpr_license,
@@ -136,9 +137,6 @@ def parties_for(
                  and (c.contact_type or "").upper() in ("AR", "GROWER-PERMITTEE")),
                 None,
             )
-            if primary and not operator.get("phone"):
-                operator["phone"] = primary.phone
-                operator["phone_source"] = f"permit {permit.permit_number} contact list"
             operator["permit_number"] = permit.permit_number
             operator["operator_id"] = primary.license_number if primary else None
 
@@ -177,7 +175,7 @@ def parties_for(
                 businesses.setdefault(c.license_number, {
                     **found,
                     "license": c.license_number,
-                    "phone": c.phone or found.get("phone"),
+                    "phone": found.get("phone"),
                     "expires": c.license_expiration.isoformat() if c.license_expiration else None,
                     "permit": permit.permit_number,
                 })
@@ -189,8 +187,10 @@ def parties_for(
         "qualified_applicators": list(qals.values()),
         "contractors": list(businesses.values()),
         "source_note": (
-            "From the restricted materials permit(s) the use reports were filed under. "
-            "Website and email appear once they have been found and checked."
+            "Names, permit and licence numbers are from the restricted materials permit(s) "
+            "the use reports were filed under. Websites, phone numbers and email addresses "
+            "are from each company's own website, shown once the site has been confirmed "
+            "as the right business."
         ),
     }
 
