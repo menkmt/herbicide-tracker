@@ -211,6 +211,14 @@ _DIRECTORY_HOSTS = (
     "yelp.", "bbb.org", "manta.com", "buzzfile.", "dnb.com", "zoominfo.",
     "bizapedia.", "opencorporates.", "facebook.com", "linkedin.com",
     "whitepages.", "spokeo.", "truepeoplesearch.", "fastpeoplesearch.",
+    # Contact-data brokers and aggregators: they repackage other sites'
+    # details, often stale, and are never the company itself.
+    "signalhire.", "rocketreach.", "apollo.io", "lusha.", "contactout.",
+    "crunchbase.", "pitchbook.", "bloomberg.", "owler.", "cbinsights.",
+    "glassdoor.", "indeed.", "ziprecruiter.", "yellowpages.", "mapquest.",
+    "superpages.", "chamberofcommerce.", "allbiz.", "corporationwiki.",
+    "instagram.com", "twitter.com", "x.com", "youtube.com", "wikipedia.org",
+    "google.com", "bing.com", "nextdoor.", "angi.", "thumbtack.", "houzz.",
 )
 
 
