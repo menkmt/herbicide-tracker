@@ -451,6 +451,10 @@ async function loadCompanies() {
   const response = await fetch("/api/admin/companies", { headers: headers() });
   const data = await response.json();
   if (!response.ok) { $("coList").innerHTML = '<p class="err small">' + escapeHtml(data.detail || "Failed") + "</p>"; return; }
+  const sr = data.search || {};
+  $("coStatus").textContent = sr.enabled
+    ? `Web searches this month: ${sr.used_this_month} of ${sr.monthly_limit} allowed.`
+    : "Web search is off (no API key); websites are found by name only.";
   const rows = data.companies.map((c) => `
     <tr data-id="${c.id}">
       <td><b>${escapeHtml(c.name)}</b><div class="small muted">${escapeHtml(c.type || "")}${c.license ? " · licence " + escapeHtml(c.license) : ""}</div></td>

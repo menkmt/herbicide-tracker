@@ -28,8 +28,10 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.core.normalize import company_key
 from app.models import ApplicationCluster, Company, Permit, PermitContact, PurRecord
+from app.providers.enrichment.budget import BudgetedSearch
 from app.providers.enrichment.business import DisabledSearch, get_search_backend
 from app.providers.enrichment.website import WebsiteFinder
 
@@ -133,7 +135,11 @@ def enrich(session: Session, *, limit: int = 40, everything: bool = False,
     collect_companies(session, report)
 
     search = get_search_backend()
-    finder = finder or WebsiteFinder(search=None if isinstance(search, DisabledSearch) else search)
+    if finder is None:
+        budgeted = None
+        if not isinstance(search, DisabledSearch):
+            budgeted = BudgetedSearch(search, session, get_settings().web_search_monthly_limit)
+        finder = WebsiteFinder(search=budgeted)
 
     stmt = select(Company).where(Company.contact_review_state.notin_(("approved", "rejected")))
     if name:

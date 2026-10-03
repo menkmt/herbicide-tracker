@@ -8,9 +8,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_admin
+from app.config import get_settings
 from app.core.access import Principal
 from app.db import get_session
 from app.models import Company
+from app.providers.enrichment.budget import usage
 
 router = APIRouter(prefix="/api/admin/companies", tags=["admin"])
 
@@ -30,7 +32,16 @@ def list_companies(session: Session = Depends(get_session),
     order = {"pending": 0, "none": 1, "auto_verified": 2, "approved": 3, "rejected": 4}
     rows = sorted(session.scalars(select(Company)).all(),
                   key=lambda c: (order.get(c.contact_review_state, 9), c.name))
-    return {"companies": [_row(c) for c in rows]}
+    settings = get_settings()
+    return {
+        "companies": [_row(c) for c in rows],
+        "search": {
+            "enabled": settings.web_search_provider not in ("disabled", "", None)
+            and bool(settings.web_search_api_key),
+            "used_this_month": usage(session),
+            "monthly_limit": settings.web_search_monthly_limit,
+        },
+    }
 
 
 class ContactDecision(BaseModel):

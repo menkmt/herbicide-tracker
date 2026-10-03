@@ -96,6 +96,9 @@ class Settings(BaseSettings):
     web_search_provider: str = "disabled"
     web_search_api_key: str | None = None
     web_search_endpoint: str | None = None
+    #: Hard cap on paid searches per calendar month. When reached, searching
+    #: stops until the month changes; free domain guessing carries on.
+    web_search_monthly_limit: int = 500
     #: Enriched contact details always land in review before publication.
     enrichment_requires_review: bool = True
 

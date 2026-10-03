@@ -1004,3 +1004,14 @@ class WaterStation(Base, TimestampMixin):
     source_url: Mapped[str | None] = mapped_column(Text)
     note: Mapped[str | None] = mapped_column(Text)
     county_id: Mapped[int | None] = mapped_column(ForeignKey("counties.id"))
+
+
+
+class SearchUsage(Base):
+    """Paid web searches made, per calendar month, so a budget can be enforced
+    across restarts, deploys and several workers."""
+
+    __tablename__ = "search_usage"
+
+    month: Mapped[str] = mapped_column(String(7), primary_key=True)  # "2026-10"
+    count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
