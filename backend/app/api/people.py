@@ -78,7 +78,6 @@ def _company(session: Session, name: str | None) -> dict | None:
         "email": row.email if confirmed else None,
         "phone": row.phone if confirmed else None,
         "phone_source": row.phone_source if confirmed else None,
-        "contact_evidence": row.contact_evidence if confirmed else None,
         "address": row.business_address,
         "license": row.dpr_license,
     }
