@@ -38,6 +38,9 @@ git pull --quiet --ff-only
 docker compose build 2>&1 | tail -3 | tee -a "$LOG"
 docker compose up -d 2>&1 | tail -3 | tee -a "$LOG"
 docker compose exec -T api alembic upgrade head 2>&1 | tail -2 | tee -a "$LOG"
+# Bundled sample records (idempotent: skipped once loaded) and section
+# outlines for anything imported since the last run.
+docker compose exec -T api python -m scripts.import_seed 2>&1 | grep -v '^INFO' | tail -8 | tee -a "$LOG"
 
 # Old image layers pile up at a few hundred MB per frontend build.
 docker image prune -f >/dev/null 2>&1 || true

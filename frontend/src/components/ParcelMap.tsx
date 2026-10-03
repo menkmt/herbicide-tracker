@@ -15,100 +15,203 @@ export interface ParcelMapProps {
 }
 
 /**
- * Pan/zoom map of application parcels, with clickable outlines.
+ * Basemaps offered in the switcher.
  *
- * Parcels are drawn over satellite imagery. Clicking one opens a summary and a
- * link to the full application page; the popup is deliberately explicit that
- * the outline is the property, not the sprayed area.
+ * The USGS layers are public domain and safe for a paid product. Esri, CARTO
+ * and OpenTopoMap restrict commercial use under their free terms; before the
+ * site is sold, either license them or delete their entries here and the
+ * switcher simply offers fewer choices.
+ */
+interface Basemap {
+  id: string;
+  label: string;
+  tiles: string[];
+  attribution: string;
+  maxzoom: number;
+}
+
+const BASEMAPS: Basemap[] = [
+  {
+    id: "esri-imagery",
+    label: "Satellite",
+    tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+    attribution: "Imagery © Esri, Maxar, Earthstar Geographics",
+    maxzoom: 19,
+  },
+  {
+    id: "usgs-imagery",
+    label: "Satellite (USGS)",
+    tiles: ["https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}"],
+    attribution: "USGS The National Map",
+    maxzoom: 16,
+  },
+  {
+    id: "carto-streets",
+    label: "Streets",
+    tiles: ["a", "b", "c", "d"].map(
+      (s) => `https://${s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png`,
+    ),
+    attribution: "© OpenStreetMap contributors © CARTO",
+    maxzoom: 19,
+  },
+  {
+    id: "opentopo",
+    label: "Topographic",
+    tiles: ["a", "b", "c"].map((s) => `https://${s}.tile.opentopomap.org/{z}/{x}/{y}.png`),
+    attribution: "© OpenTopoMap (CC-BY-SA) © OpenStreetMap contributors",
+    maxzoom: 17,
+  },
+  {
+    id: "usgs-topo",
+    label: "Topographic (USGS)",
+    tiles: ["https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}"],
+    attribution: "USGS The National Map",
+    maxzoom: 16,
+  },
+];
+
+/** Overlays drawn above the basemap and below the applications. */
+interface Overlay {
+  id: string;
+  label: string;
+  tiles: string[];
+  attribution: string;
+  opacity: number;
+  defaultOn: boolean;
+  maxzoom: number;
+}
+
+const OVERLAYS: Overlay[] = [
+  {
+    // Streams, rivers and lakes: on by default, because on a herbicide map
+    // the question after "where" is "near what water".
+    id: "hydro",
+    label: "Streams & water",
+    tiles: ["https://basemap.nationalmap.gov/arcgis/rest/services/USGSHydroCached/MapServer/tile/{z}/{y}/{x}"],
+    attribution: "USGS National Hydrography",
+    opacity: 0.9,
+    defaultOn: true,
+    maxzoom: 16,
+  },
+  {
+    // Who manages the land: national forest, BLM, state, private.
+    id: "ownership",
+    label: "Land ownership",
+    tiles: ["https://gis.blm.gov/arcgis/rest/services/lands/BLM_Natl_SMA_Cached_without_PriUnk/MapServer/tile/{z}/{y}/{x}"],
+    attribution: "BLM Surface Management Agency",
+    opacity: 0.45,
+    defaultOn: false,
+    maxzoom: 14,
+  },
+];
+
+const CA_CENTRE: [number, number] = [-120.6, 39.6];
+
+/**
+ * Pan/zoom map of applications.
  *
- * The basemap comes from configuration rather than being hard-coded, because
- * satellite imagery providers have licence terms that differ by deployment.
+ * Applications with identified parcels are drawn as solid parcel outlines.
+ * Applications whose parcels are not identified yet are drawn as their
+ * reported section — the square mile on the use report — with a dashed edge
+ * and a lighter fill, and the popup says plainly which one it is.
  */
 export function ParcelMap({ source, bounds, tall, radius }: ParcelMapProps) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [count, setCount] = useState<number | null>(null);
+  const [basemap, setBasemap] = useState(BASEMAPS[0].id);
+  const [overlays, setOverlays] = useState<Record<string, boolean>>(
+    Object.fromEntries(OVERLAYS.map((o) => [o.id, o.defaultOn])),
+  );
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [keyOpen, setKeyOpen] = useState(false);
 
   useEffect(() => {
     if (!container.current || mapRef.current) return;
 
-    const styleUrl = process.env.NEXT_PUBLIC_BASEMAP_STYLE_URL;
-    const tileUrl = process.env.NEXT_PUBLIC_BASEMAP_TILE_URL;
-    const attribution = process.env.NEXT_PUBLIC_BASEMAP_ATTRIBUTION ?? "";
-
-    if (!styleUrl && !tileUrl) {
-      setError(
-        "No basemap is configured. Set NEXT_PUBLIC_BASEMAP_TILE_URL (or _STYLE_URL) " +
-          "to the aerial imagery service this deployment is licensed to use.",
-      );
-      return;
+    const sources: maplibregl.StyleSpecification["sources"] = {};
+    const layers: maplibregl.LayerSpecification[] = [];
+    for (const b of BASEMAPS) {
+      sources[b.id] = { type: "raster", tiles: b.tiles, tileSize: 256, attribution: b.attribution, maxzoom: b.maxzoom };
+      layers.push({
+        id: b.id, type: "raster", source: b.id,
+        layout: { visibility: b.id === BASEMAPS[0].id ? "visible" : "none" },
+      });
+    }
+    for (const o of OVERLAYS) {
+      sources[o.id] = { type: "raster", tiles: o.tiles, tileSize: 256, attribution: o.attribution, maxzoom: o.maxzoom };
+      layers.push({
+        id: o.id, type: "raster", source: o.id,
+        paint: { "raster-opacity": o.opacity },
+        layout: { visibility: o.defaultOn ? "visible" : "none" },
+      });
     }
 
     const map = new maplibregl.Map({
       container: container.current,
-      style: styleUrl
-        ? styleUrl
-        : {
-            version: 8,
-            sources: {
-              basemap: {
-                type: "raster",
-                tiles: [tileUrl as string],
-                tileSize: 256,
-                attribution,
-              },
-            },
-            layers: [{ id: "basemap", type: "raster", source: "basemap" }],
-          },
-      center: [-120.65, 40.45],
-      zoom: 8,
+      style: { version: 8, sources, layers },
+      center: CA_CENTRE,
+      zoom: 6,
+      attributionControl: { compact: true },
     });
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     map.addControl(new maplibregl.ScaleControl({ unit: "imperial" }));
+    map.addControl(new maplibregl.FullscreenControl(), "top-right");
 
-    map.on("load", async () => {
+    // Start on the style, not on "load": "load" waits for every basemap tile,
+    // so one slow or unreachable tile server would keep the applications from
+    // ever being drawn. The style here is inline and ready almost at once.
+    let started = false;
+    const start = async () => {
+      if (started) return;
+      started = true;
       let data: GeoJSON.FeatureCollection;
       if (typeof source === "string") {
         try {
           const response = await fetch(source);
           data = (await response.json()) as GeoJSON.FeatureCollection;
         } catch {
-          setError("The parcel data could not be loaded.");
+          setError("The map data could not be loaded.");
           return;
         }
       } else {
         data = source;
       }
+      setCount(new Set(data.features.map((f) => f.properties?.cluster_id)).size);
 
-      map.addSource("parcels", { type: "geojson", data });
+      map.addSource("apps", { type: "geojson", data });
+
+      const isSection = ["==", ["get", "geometry_kind"], "section"] as maplibregl.ExpressionSpecification;
+      const isRed = ["==", ["get", "flag_level"], "red"] as maplibregl.ExpressionSpecification;
 
       map.addLayer({
-        id: "parcel-fill",
+        id: "apps-fill",
         type: "fill",
-        source: "parcels",
+        source: "apps",
         paint: {
-          // Flagged applications read as red; everything else is neutral, so
-          // colour only ever means one thing on this map.
-          "fill-color": [
-            "case",
-            ["==", ["get", "flag_level"], "red"], "#b3261e",
-            "#f2c94c",
-          ],
-          "fill-opacity": 0.22,
+          // Colour only ever means a warning: red for flagged, amber otherwise.
+          "fill-color": ["case", isRed, "#ff6b6b", "#ffb156"],
+          "fill-opacity": ["case", isSection, 0.12, 0.3],
         },
       });
       map.addLayer({
-        id: "parcel-line",
+        id: "apps-line-parcel",
         type: "line",
-        source: "parcels",
+        source: "apps",
+        filter: ["!", isSection],
+        paint: { "line-color": ["case", isRed, "#ff6b6b", "#ffb156"], "line-width": 2.2 },
+      });
+      map.addLayer({
+        id: "apps-line-section",
+        type: "line",
+        source: "apps",
+        filter: isSection,
         paint: {
-          "line-color": [
-            "case",
-            ["==", ["get", "flag_level"], "red"], "#8f1d17",
-            "#e3b21f",
-          ],
-          "line-width": 2,
+          "line-color": ["case", isRed, "#ff6b6b", "#ffb156"],
+          "line-width": 1.8,
+          "line-dasharray": [2, 1.5],
         },
       });
 
@@ -118,49 +221,51 @@ export function ParcelMap({ source, bounds, tall, radius }: ParcelMapProps) {
           id: "radius-line",
           type: "line",
           source: "radius",
-          paint: { "line-color": "#2f5d46", "line-width": 2, "line-dasharray": [2, 2] },
+          paint: { "line-color": "#22d3ee", "line-width": 2, "line-dasharray": [2, 2] },
         });
-        new maplibregl.Marker({ color: "#2f5d46" })
-          .setLngLat([radius.lon, radius.lat])
-          .addTo(map);
+        new maplibregl.Marker({ color: "#22d3ee" }).setLngLat([radius.lon, radius.lat]).addTo(map);
       }
 
-      map.on("click", "parcel-fill", (event) => {
+      map.on("click", "apps-fill", (event) => {
         const feature = event.features?.[0];
         if (!feature) return;
         const p = feature.properties as Record<string, string>;
+        const section = p.geometry_kind === "section";
         const flag = p.flag_headline
-          ? `<div style="margin-top:6px"><strong>${escapeHtml(p.flag_headline)}</strong></div>`
+          ? `<div style="margin-top:6px;color:#ff8a8a"><strong>${escapeHtml(p.flag_headline)}</strong></div>`
           : "";
+        const where = section
+          ? `<div>Reported section ${escapeHtml(p.mtrs ?? "")}</div>`
+          : p.apn ? `<div>Parcel ${escapeHtml(p.apn)}</div>` : "";
+        const caveat = section
+          ? "Dashed square is the one-square-mile section the use report names. " +
+            "The property inside it has not been identified yet; this is not the sprayed area."
+          : "Outline is the property associated with this application, not the sprayed area.";
         new maplibregl.Popup({ maxWidth: "300px" })
           .setLngLat(event.lngLat)
           .setHTML(
-            `<div><strong>${escapeHtml(p.title ?? "Application")}</strong></div>` +
-              `<div>${escapeHtml(p.date ?? "")}${p.acres ? ` · ${p.acres} acres reported` : ""}</div>` +
-              (p.apn ? `<div>Parcel ${escapeHtml(p.apn)}</div>` : "") +
+            `<div style="font-weight:700">${escapeHtml(p.title ?? "Application")}</div>` +
+              (p.owner && p.owner !== p.title ? `<div>${escapeHtml(p.owner)}</div>` : "") +
+              `<div>${escapeHtml(p.date ?? "")}${p.acres ? ` · ${escapeHtml(String(p.acres))} acres reported` : ""}` +
+              `${p.method === "aerial" ? " · Aerial" : p.method === "ground" ? " · Ground" : ""}</div>` +
+              where +
               flag +
-              `<div style="margin-top:6px;font-size:.82em;color:#55635c">` +
-              `Outline is the property associated with this application, not the ` +
-              `sprayed area.</div>` +
-              `<div style="margin-top:8px"><a href="${escapeHtml(p.url ?? "#")}">` +
-              `View full application →</a></div>`,
+              `<div style="margin-top:6px;font-size:.8em;opacity:.75">${caveat}</div>` +
+              `<div style="margin-top:8px"><a href="${escapeHtml(p.url ?? "#")}">View full application →</a></div>`,
           )
           .addTo(map);
       });
-
-      map.on("mouseenter", "parcel-fill", () => {
-        map.getCanvas().style.cursor = "pointer";
-      });
-      map.on("mouseleave", "parcel-fill", () => {
-        map.getCanvas().style.cursor = "";
-      });
+      map.on("mouseenter", "apps-fill", () => { map.getCanvas().style.cursor = "pointer"; });
+      map.on("mouseleave", "apps-fill", () => { map.getCanvas().style.cursor = ""; });
 
       if (bounds) {
         map.fitBounds(bounds, { padding: 48, maxZoom: 15 });
       } else if (data.features.length > 0) {
-        map.fitBounds(featureBounds(data), { padding: 48, maxZoom: 15 });
+        map.fitBounds(featureBounds(data), { padding: 48, maxZoom: 14, duration: 0 });
       }
-    });
+    };
+    if (map.isStyleLoaded()) void start();
+    else map.on("styledata", () => void start());
 
     return () => {
       map.remove();
@@ -168,17 +273,84 @@ export function ParcelMap({ source, bounds, tall, radius }: ParcelMapProps) {
     };
   }, [source, bounds, radius]);
 
+  // Basemap and overlay switching only flips layer visibility, so the data
+  // layers and any open popup are untouched.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const apply = () => {
+      for (const b of BASEMAPS) {
+        if (map.getLayer(b.id)) map.setLayoutProperty(b.id, "visibility", b.id === basemap ? "visible" : "none");
+      }
+      for (const o of OVERLAYS) {
+        if (map.getLayer(o.id)) map.setLayoutProperty(o.id, "visibility", overlays[o.id] ? "visible" : "none");
+      }
+    };
+    if (map.isStyleLoaded()) apply();
+    else map.once("styledata", apply);
+  }, [basemap, overlays]);
+
   if (error) {
     return (
       <div className={`map ${tall ? "tall" : ""}`} style={{ display: "grid", placeItems: "center", padding: 24 }}>
-        <p className="muted small" style={{ maxWidth: "48ch", textAlign: "center" }}>
-          {error}
-        </p>
+        <p className="muted small" style={{ maxWidth: "48ch", textAlign: "center" }}>{error}</p>
       </div>
     );
   }
 
-  return <div ref={container} className={`map ${tall ? "tall" : ""}`} />;
+  return (
+    <div className={`map-wrap ${tall ? "tall" : ""}`}>
+      <div ref={container} className={`map ${tall ? "tall" : ""}`} />
+
+      <div className="map-panel">
+        <button type="button" className="map-panel-toggle" onClick={() => setPanelOpen((v) => !v)}
+                aria-expanded={panelOpen}>
+          Layers {panelOpen ? "▾" : "▸"}
+        </button>
+        {panelOpen && (
+          <div className="map-panel-body">
+            <div className="map-panel-head">Basemap</div>
+            {BASEMAPS.map((b) => (
+              <label key={b.id}>
+                <input type="radio" name="basemap" checked={basemap === b.id} onChange={() => setBasemap(b.id)} />
+                {b.label}
+              </label>
+            ))}
+            <div className="map-panel-head">Overlays</div>
+            {OVERLAYS.map((o) => (
+              <label key={o.id}>
+                <input type="checkbox" checked={!!overlays[o.id]}
+                       onChange={() => setOverlays((s) => ({ ...s, [o.id]: !s[o.id] }))} />
+                {o.label}
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="map-key">
+        <button type="button" className="map-panel-toggle" onClick={() => setKeyOpen((v) => !v)}
+                aria-expanded={keyOpen}>
+          Map key {keyOpen ? "▾" : "▸"}
+        </button>
+        {keyOpen && (
+          <div className="map-panel-body">
+            <div><span className="sw sw-parcel" /> Application, property identified</div>
+            <div><span className="sw sw-section" /> Application, reported section only</div>
+            <div><span className="sw sw-red" /> Restricted or watch-listed chemical</div>
+            <div><span className="sw sw-water" /> Streams &amp; water (USGS)</div>
+            <p className="small muted" style={{ margin: "8px 0 0" }}>
+              Outlines show property or the reported square mile — never the area sprayed.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {count === 0 && (
+        <div className="map-empty">No published applications in this view yet.</div>
+      )}
+    </div>
+  );
 }
 
 function featureBounds(data: GeoJSON.FeatureCollection): [number, number, number, number] {

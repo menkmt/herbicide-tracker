@@ -24,6 +24,26 @@ DEFAULT_PLSS_URL = (
     "MapServer/2"
 )
 
+#: CadNSDI principal-meridian codes for California's three meridians.
+MERIDIAN_CODES = {"M": "21", "H": "15", "S": "27"}
+
+
+def frstdivid(decoded: DecodedSiteId) -> str | None:
+    """The CadNSDI identifier for one section.
+
+    ``PLSSID`` is state (2) + meridian (2) + township (3) + fraction (1) +
+    direction (1) + range (3) + fraction (1) + direction (1) + duplicate (1);
+    a first division appends ``SN`` + section (2) + ``0``. For T29N R12E
+    section 23, Mount Diablo meridian: ``CA210290N0120E0SN230``.
+    """
+    code = MERIDIAN_CODES.get(decoded.meridian)
+    if code is None:
+        return None
+    return (
+        f"CA{code}{decoded.township:03d}0{decoded.township_dir}"
+        f"{decoded.range:03d}0{decoded.range_dir}0SN{decoded.section:02d}0"
+    )
+
 
 class PlssError(RuntimeError):
     pass
@@ -52,32 +72,45 @@ class PlssProvider:
         code, so the decoded values are formatted to match rather than passed
         through raw.
         """
-        where = (
+        # The exact identifier first: one indexed lookup, and it carries the
+        # meridian, which the field-by-field query cannot. Fall back to the
+        # fields for services that do not publish FRSTDIVID.
+        wheres = []
+        ident = frstdivid(decoded)
+        if ident:
+            wheres.append(f"FRSTDIVID='{ident}'")
+        wheres.append(
             f"TWNSHPNO='{decoded.township:03d}' AND TWNSHPDIR='{decoded.township_dir}' "
             f"AND RANGENO='{decoded.range:03d}' AND RANGEDIR='{decoded.range_dir}' "
-            f"AND FRSTDIVNO='{decoded.section}'"
+            f"AND FRSTDIVNO='{decoded.section:02d}'"
         )
-        params = {
-            "f": "geojson",
-            "where": where,
-            "outFields": "FRSTDIVID,TWNSHPNO,RANGENO,FRSTDIVNO",
-            "outSR": 4326,
-            "returnGeometry": "true",
-            "resultRecordCount": 5,
-        }
-        try:
-            response = self._client.get(f"{self.url}/query", params=params)
-            response.raise_for_status()
-            data = response.json()
-        except httpx.HTTPError as exc:
-            raise PlssError(f"PLSS lookup failed for {decoded.mtrs}: {exc}") from exc
-        except ValueError as exc:
-            raise PlssError("the PLSS service returned an unreadable response") from exc
-
-        if isinstance(data, dict) and "error" in data:
-            raise PlssError(f"PLSS service error: {data['error'].get('message')}")
-
-        features = data.get("features") or []
+        features: list = []
+        last_error: str | None = None
+        for where in wheres:
+            params = {
+                "f": "geojson",
+                "where": where,
+                "outFields": "FRSTDIVID",
+                "outSR": 4326,
+                "returnGeometry": "true",
+                "resultRecordCount": 5,
+            }
+            try:
+                response = self._client.get(f"{self.url}/query", params=params)
+                response.raise_for_status()
+                data = response.json()
+            except httpx.HTTPError as exc:
+                raise PlssError(f"PLSS lookup failed for {decoded.mtrs}: {exc}") from exc
+            except ValueError as exc:
+                raise PlssError("the PLSS service returned an unreadable response") from exc
+            if isinstance(data, dict) and "error" in data:
+                last_error = str(data["error"].get("message"))
+                continue
+            features = data.get("features") or []
+            if features:
+                break
+        if not features and last_error:
+            raise PlssError(f"PLSS service error: {last_error}")
         if not features:
             return None
         return PlssSection(

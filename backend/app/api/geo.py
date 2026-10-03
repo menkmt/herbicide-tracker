@@ -3,15 +3,24 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from geoalchemy2 import Geography
 from geoalchemy2 import functions as geo
-from sqlalchemy import func, select
+from sqlalchemy import cast, func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import rate_limit
 from app.config import Settings, get_settings
 from app.core.access import Principal
 from app.db import get_session
-from app.models import ApplicationCluster, ClusterParcel, County, Parcel
+from app.models import (
+    ApplicationCluster,
+    ClusterParcel,
+    ClusterRecord,
+    County,
+    Parcel,
+    PlssSection,
+    PurRecord,
+)
 from app.providers.geocode import GeocodeError, get_geocoder
 
 router = APIRouter(prefix="/api", tags=["geo"])
@@ -33,12 +42,13 @@ def map_applications(
     bbox: str | None = Query(None, description="minLon,minLat,maxLon,maxLat"),
     limit: int = Query(2000, ge=1, le=5000),
 ):
-    """GeoJSON of published application parcels, for the interactive map.
+    """GeoJSON of published applications, for the interactive map.
 
-    Returns parcel polygons rather than PLSS sections, because a section is a
-    square mile and would imply a far larger treated area than the records
-    support.  Each feature carries enough for a click popup plus a link to the
-    full page.
+    Parcel polygons where the property has been identified. Where it has not,
+    the reported PLSS section instead, marked ``geometry_kind: section`` so the
+    map draws it differently and the popup says it is the square mile the
+    county was told about, not the area sprayed. Each feature carries enough
+    for a click popup plus a link to the full page.
     """
     stmt = (
         select(
@@ -75,31 +85,77 @@ def map_applications(
 
     import json
 
+    def feature(cid, slug, title, start, acres, method, owner, flags, geometry, **extra):
+        flags = flags or {}
+        return {
+            "type": "Feature",
+            "geometry": json.loads(geometry),
+            "properties": {
+                "cluster_id": cid,
+                "slug": slug,
+                "title": title,
+                "owner": owner,
+                "date": start.isoformat() if start else None,
+                "acres": acres,
+                "method": method,
+                "flag_level": flags.get("highest_level"),
+                "flag_headline": flags.get("headline"),
+                "url": f"/application/{slug}",
+                **extra,
+            },
+        }
+
     features = []
+    with_parcels: set[int] = set()
     for row in session.execute(stmt.limit(limit)).all():
-        (cid, slug, title, start, acres, method, owner, flags, apn, geometry) = row
+        (cid, slug_, title, start, acres, method, owner, flags, apn, geometry) = row
         if not geometry:
             continue
-        flags = flags or {}
-        features.append(
-            {
-                "type": "Feature",
-                "geometry": json.loads(geometry),
-                "properties": {
-                    "cluster_id": cid,
-                    "slug": slug,
-                    "title": title,
-                    "owner": owner,
-                    "date": start.isoformat() if start else None,
-                    "acres": acres,
-                    "method": method,
-                    "apn": apn,
-                    "flag_level": flags.get("highest_level"),
-                    "flag_headline": flags.get("headline"),
-                    "url": f"/application/{slug}",
-                },
-            }
+        with_parcels.add(cid)
+        features.append(feature(cid, slug_, title, start, acres, method, owner, flags, geometry,
+                                apn=apn, geometry_kind="parcel"))
+
+    # Applications whose parcels are not matched yet: their reported sections.
+    sections = (
+        select(
+            ApplicationCluster.id,
+            ApplicationCluster.slug,
+            ApplicationCluster.title,
+            ApplicationCluster.date_start,
+            ApplicationCluster.total_acres,
+            ApplicationCluster.method,
+            ApplicationCluster.owner_name,
+            ApplicationCluster.flags,
+            PlssSection.mtrs,
+            geo.ST_AsGeoJSON(PlssSection.geom),
         )
+        .join(ClusterRecord, ClusterRecord.cluster_id == ApplicationCluster.id)
+        .join(PurRecord, PurRecord.id == ClusterRecord.record_id)
+        .join(PlssSection, PlssSection.id == PurRecord.plss_section_id)
+        .where(ApplicationCluster.status == "published", PlssSection.geom.isnot(None))
+    )
+    if slug:
+        sections = sections.where(ApplicationCluster.slug == slug)
+    if county:
+        sections = sections.join(County, ApplicationCluster.county_id == County.id).where(
+            County.slug == county
+        )
+    if year:
+        sections = sections.where(func.extract("year", ApplicationCluster.date_start) == year)
+    if bbox:
+        sections = sections.where(geo.ST_Intersects(PlssSection.geom, envelope))
+    # Several records in one application usually share a section; draw it once.
+    # (Deduplicated here rather than with DISTINCT, which Postgres cannot apply
+    # to the JSON flags column.)
+    drawn: set[tuple[int, str]] = set()
+    for row in session.execute(sections.limit(limit * 4)).all():
+        (cid, slug_, title, start, acres, method, owner, flags, mtrs, geometry) = row
+        if cid in with_parcels or not geometry or (cid, mtrs) in drawn:
+            continue
+        drawn.add((cid, mtrs))
+        features.append(feature(cid, slug_, title, start, acres, method, owner, flags, geometry,
+                                mtrs=mtrs, geometry_kind="section"))
+
     return {"type": "FeatureCollection", "features": features}
 
 
@@ -142,8 +198,8 @@ def radius_search(
     # Measured on the geography type so the distance is in real metres
     # regardless of latitude, rather than in degrees.
     distance = geo.ST_Distance(
-        func.cast(ApplicationCluster.geom, geo.Geography),
-        func.cast(point, geo.Geography),
+        cast(ApplicationCluster.geom, Geography),
+        cast(point, Geography),
     )
     radius_metres = miles * METRES_PER_MILE
 
@@ -190,6 +246,9 @@ def radius_search(
         "radius_miles": miles,
         "count": len(results),
         "results": results,
-        "distance_basis": "nearest edge of the application's parcels",
+        "distance_basis": (
+            "nearest edge of the application's parcels, or of its reported section "
+            "where the parcels are not yet identified"
+        ),
         "privacy_note": "The searched address is not stored.",
     }

@@ -1,6 +1,6 @@
 import { Legend } from "@/components/Legend";
 import { ParcelMap } from "@/components/ParcelMap";
-import { api } from "@/lib/api";
+import { CALIFORNIA_COUNTIES, countySlug } from "@/lib/counties";
 
 export const metadata = {
   title: "Map of forestry herbicide applications in California",
@@ -13,7 +13,6 @@ interface Props {
 
 export default async function MapPage({ searchParams }: Props) {
   const params = await searchParams;
-  const { counties } = await api.counties().catch(() => ({ counties: [] }));
 
   const query = new URLSearchParams();
   if (params.county) query.set("county", params.county);
@@ -23,8 +22,10 @@ export default async function MapPage({ searchParams }: Props) {
     <>
       <h1>Application map</h1>
       <p className="lede">
-        Parcels associated with published applications. Click an outline for a summary
-        and a link to the full record. Flagged applications are outlined in red.
+        Every published application. Solid outlines are identified properties; dashed
+        squares are the one-square-mile section a use report names, shown until the
+        property is identified. Red means a restricted or watch-listed chemical. Click
+        any outline for a summary and a link to the full record.
       </p>
 
       <form className="filters" method="get">
@@ -32,8 +33,8 @@ export default async function MapPage({ searchParams }: Props) {
           <label htmlFor="county">County</label>
           <select id="county" name="county" defaultValue={params.county ?? ""}>
             <option value="">All counties</option>
-            {counties.map((county) => (
-              <option key={county.slug} value={county.slug}>{county.name}</option>
+            {CALIFORNIA_COUNTIES.map((name) => (
+              <option key={name} value={countySlug(name)}>{name}</option>
             ))}
           </select>
         </div>
@@ -49,9 +50,9 @@ export default async function MapPage({ searchParams }: Props) {
       <ParcelMap source={`/api/map/applications?${query.toString()}`} tall />
 
       <p className="small muted" style={{ marginTop: 10 }}>
-        Outlines are the properties associated with each application, not measurements
-        of the area treated. An application is shown only once its parcels have been
-        matched and an administrator has published it.
+        Outlines are properties or reported sections, not measurements of the area
+        treated. Use the Layers button for satellite, streets or topographic maps,
+        streams and land ownership.
       </p>
     </>
   );

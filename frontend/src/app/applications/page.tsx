@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ApplicationGrid } from "@/components/ApplicationGrid";
 import { Legend } from "@/components/Legend";
 import { api } from "@/lib/api";
+import { CALIFORNIA_COUNTIES, countySlug } from "@/lib/counties";
 
 export const metadata = {
   title: "All forestry herbicide applications in California",
@@ -62,8 +63,8 @@ export default async function AllApplicationsPage({ searchParams }: Props) {
           <label htmlFor="county">County</label>
           <select id="county" name="county" defaultValue={params.county ?? ""}>
             <option value="">All counties</option>
-            {counties.counties.map((county) => (
-              <option key={county.slug} value={county.slug}>{county.name}</option>
+            {CALIFORNIA_COUNTIES.map((name) => (
+              <option key={name} value={countySlug(name)}>{name}</option>
             ))}
           </select>
         </div>

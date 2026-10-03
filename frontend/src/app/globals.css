@@ -325,3 +325,42 @@ header.site nav a.support { color: var(--cyan); }
 .grade.g-F { color: var(--red); border-color: rgba(255, 107, 107, 0.5); background: var(--red-bg); }
 .rc-table .grade { font-size: 1.4rem; padding: 4px 12px; border-radius: 10px; }
 .rc-table .grade.none { font-size: 0.8rem; padding: 6px 10px; }
+
+/* --- map controls ------------------------------------------------------- */
+
+.map-wrap { position: relative; }
+.map-panel, .map-key {
+  position: absolute; z-index: 5; font-size: 0.86rem;
+  background: rgba(19, 26, 46, 0.92); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--line); border-radius: 12px; color: var(--text); max-width: 260px;
+}
+.map-panel { top: 10px; left: 10px; }
+.map-key { bottom: 34px; left: 10px; }
+.map-panel-toggle {
+  background: transparent; border: 0; color: var(--text); font-weight: 700; cursor: pointer;
+  padding: 8px 12px; width: 100%; text-align: left;
+}
+.map-panel-body { padding: 0 12px 12px; display: grid; gap: 6px; }
+.map-panel-body label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+.map-panel-body input { padding: 0; }
+.map-panel-head {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-top: 4px;
+}
+.sw { display: inline-block; width: 16px; height: 12px; margin-right: 8px; vertical-align: -1px; border-radius: 2px; }
+.sw-parcel { background: rgba(255, 177, 86, 0.3); border: 2px solid #ffb156; }
+.sw-section { background: rgba(255, 177, 86, 0.12); border: 2px dashed #ffb156; }
+.sw-red { background: rgba(255, 107, 107, 0.3); border: 2px solid #ff6b6b; }
+.sw-water { background: #5aa9ff; height: 4px; vertical-align: 3px; }
+.map-empty {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 4;
+  background: rgba(19, 26, 46, 0.9); border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px 16px; font-size: 0.92rem; color: var(--muted); pointer-events: none;
+}
+.maplibregl-ctrl-attrib { font-size: 10px; }
+
+@media (max-width: 720px) {
+  .map { height: 420px; }
+  .map.tall { height: 70vh; }
+  .map-panel, .map-key { max-width: calc(100% - 70px); font-size: 0.82rem; }
+  .map-key { bottom: 30px; }
+}

@@ -6,6 +6,7 @@ an audit-log entry recording who changed what, when, and what it was before.
 
 from __future__ import annotations
 
+import logging
 import shutil
 import tempfile
 from datetime import UTC, datetime
@@ -30,6 +31,7 @@ from app.models import (
 )
 from app.pipeline.ingest import ingest_files
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
@@ -82,6 +84,16 @@ async def import_files(
             paths.append(destination)
 
         summary = ingest_files(session, paths, county=county, label=label)
+
+    # Put the new records on the map straight away. Best effort: if the PLSS
+    # service is slow or down, the import still succeeds and the next deploy
+    # or import catches the outlines up.
+    try:
+        from app.maps.sections import ensure_section_geometry
+
+        ensure_section_geometry(session, limit=200)
+    except Exception:  # noqa: BLE001
+        logger.exception("could not fetch section outlines after import")
 
     _audit(
         session,

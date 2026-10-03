@@ -1,7 +1,7 @@
 """page views
 
 Revision ID: a41f2c9d7b10
-Revises: c612d6b34789
+Revises: 2f15f2b21c85
 Create Date: 2026-09-24 06:10:00
 """
 from __future__ import annotations
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "a41f2c9d7b10"
-down_revision = "c612d6b34789"
+down_revision = "2f15f2b21c85"
 branch_labels = None
 depends_on = None
 
