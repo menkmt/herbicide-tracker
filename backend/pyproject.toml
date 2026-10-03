@@ -23,6 +23,13 @@ dependencies = [
     "rq>=1.16",
     "pillow>=10.3",
     "pyyaml>=6.0",
+    # Readers for what counties actually send: Apple Numbers, old Excel,
+    # OpenDocument, RTF and iPhone photos (see app/extraction/convert.py).
+    "numbers-parser>=4.10",
+    "xlrd>=2.0",
+    "odfpy>=1.4",
+    "striprtf>=0.0.26",
+    "pillow-heif>=0.16",
 ]
 
 [project.optional-dependencies]

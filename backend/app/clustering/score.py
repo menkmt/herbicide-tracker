@@ -315,6 +315,25 @@ def score_pair(
     proposable, _ = _dates_within(a, b, weights.propose_date_days)
     proximate = date_proximate or (proposable and close)
 
+    if a.record_kind != b.record_kind:
+        # A notice of intent is a plan; a use report is what happened. Merged,
+        # the plan's acres and pounds would be added to the real ones. They are
+        # kept as separate entries; linking a notice to the report that
+        # fulfilled it is a separate step that never sums them.
+        signals.append(
+            SignalScore(
+                "notice vs report",
+                0,
+                False,
+                "one is a notice of intent (planned) and the other a use report "
+                "(applied), so they are never combined",
+            )
+        )
+        return PairScore(
+            left=left_key, right=right_key, total=total, outcome=Outcome.SEPARATE,
+            signals=signals,
+        )
+
     if owner_conflict:
         outcome = Outcome.SEPARATE
         signals.append(

@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from app.core.confidence import Confidence
+from app.core.coverage import DocumentKind
 from app.core.provenance import ExtractionMethod, Provenance, SourceType, file_provenance
 from app.core.siteid import SiteIdDecodeError, cross_check, decode_structured, try_decode
 from app.extraction.base import (
@@ -73,15 +74,41 @@ def _read_delimited(path: Path) -> list[list[str]]:
 
 
 def _read_excel(path: Path) -> list[list[str]]:
+    """The rows of the sheet that holds the records.
+
+    County exports often carry several sheets (a summary, the records, a
+    key). The one chosen is the sheet whose header row matches the most
+    known field names, not simply the first.
+    """
     from openpyxl import load_workbook
 
+    from app.extraction.fieldmap import map_headers
+
     workbook = load_workbook(path, read_only=True, data_only=True)
-    sheet = workbook.active
-    rows: list[list[str]] = []
-    for row in sheet.iter_rows(values_only=True):
-        rows.append(["" if cell is None else str(cell).strip() for cell in row])
+    best: list[list[str]] = []
+    best_score = -1
+    for sheet in workbook.worksheets:
+        rows: list[list[str]] = []
+        for row in sheet.iter_rows(values_only=True):
+            rows.append(["" if cell is None else str(cell).strip() for cell in row])
+        score = max((len(map_headers(r)) for r in rows[:15]), default=0)
+        if score > best_score:
+            best, best_score = rows, score
     workbook.close()
-    return rows
+    return best
+
+
+_NOI_PATTERN = re.compile(r"notice\s*of\s*intent|\bNOIs?\b|intended\s+application|"
+                          r"proposed\s+application", re.IGNORECASE)
+
+
+def looks_like_notice_of_intent(name: str, top_rows: list[list[str]]) -> bool:
+    """A notice-of-intent export, judged by its file name or its title and
+    header rows. Notices record planned applications; mistaking them for use
+    reports would count spraying that may never have happened."""
+    if _NOI_PATTERN.search(name or ""):
+        return True
+    return any(_NOI_PATTERN.search(" ".join(str(c) for c in row)) for row in top_rows)
 
 
 def read_rows(path: str | Path) -> list[list[str]]:
@@ -277,6 +304,11 @@ def extract(
 
     header_index, mapping = header
     headers = [mapping.get(i, f"column_{i}") for i in range(len(rows[header_index]))]
+    is_noi = looks_like_notice_of_intent(name, rows[: header_index + 1])
+    if is_noi:
+        result.notes.append(
+            "read as notices of intent (planned applications), not use reports"
+        )
     original_headers = [str(c) for c in rows[header_index]]
     unmapped = [h for i, h in enumerate(original_headers) if i not in mapping and h.strip()]
     if unmapped:
@@ -302,6 +334,8 @@ def extract(
         line_numbers, value_rows = zip(*members, strict=True)
         first = value_rows[0]
         record = PurRecord(source_profile=PROFILE_NAME)
+        if is_noi:
+            record.record_kind = DocumentKind.NOTICE_OF_INTENT
         record.raw = {
             "rows": [dict(v) for v in value_rows],
             "source_lines": list(line_numbers),

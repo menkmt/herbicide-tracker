@@ -12,6 +12,7 @@ ENV PYTHONUNBUFFERED=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends \
         tesseract-ocr \
         poppler-utils \
+        antiword \
         libpq5 \
         gdal-bin \
     && rm -rf /var/lib/apt/lists/*

@@ -19,6 +19,9 @@ Design commitments:
 from __future__ import annotations
 
 import logging
+import shutil
+import tempfile
+import zipfile
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -37,6 +40,7 @@ from app.core.provenance import Provenance
 from app.core.site_category import classify_site
 from app.core.units import normalize_quantity
 from app.extraction.base import ExtractionResult, PermitRecord, PurRecord
+from app.extraction.convert import ConversionError, Converted, expand
 from app.extraction.registry import extract_file
 from app.extraction.text_source import sha256_file
 from app.models import (
@@ -60,6 +64,7 @@ from app.models import (
 )
 from app.pipeline import chemicals_stage
 from app.pipeline.document_text import decide_storage, prepare_text
+from app.pipeline.duplicates import find_duplicate
 from app.pipeline.storage import SourceStorage, get_storage
 
 logger = logging.getLogger(__name__)
@@ -106,6 +111,8 @@ class ImportSummary:
     ready_to_publish: int = 0
     needs_review: int = 0
     out_of_coverage: int = 0
+    #: Records already on file from another document (see duplicates.py).
+    records_duplicate: int = 0
     excluded_not_forestry: int = 0
     chemical_alerts: int = 0
     review_reasons: dict[str, int] = field(default_factory=dict)
@@ -125,6 +132,7 @@ class ImportSummary:
             "needs_review": self.needs_review,
             "out_of_coverage": self.out_of_coverage,
             "excluded_not_forestry": self.excluded_not_forestry,
+            "records_duplicate": self.records_duplicate,
             "chemical_alerts": self.chemical_alerts,
             "review_reasons": self.review_reasons,
             "files": [f.to_dict() for f in self.files],
@@ -148,6 +156,9 @@ class ImportSummary:
             lines.append(f"- {reason.replace('_', ' ')} ({count})")
         if self.files_duplicate:
             lines.extend(["", f"{self.files_duplicate} file(s) already imported (skipped)"])
+        if self.records_duplicate:
+            lines.extend(["", f"{self.records_duplicate} record(s) were already on file from "
+                              "another document and were not counted twice"])
         if self.files_failed:
             lines.extend(["", f"{self.files_failed} FAILED IMPORT"])
             for outcome in self.files:
@@ -457,9 +468,30 @@ def ingest_files(
 
     new_records: list[tuple[PurRecord, PurRecordRow]] = []
 
+    # Convert every upload into readable files first: an archive becomes its
+    # members, a Numbers or old Word file becomes something the extractors
+    # read. A file nothing can read is reported as a failed file.
+    workdir = Path(tempfile.mkdtemp(prefix="tracker-convert-"))
+    work: list[Converted] = []
     for raw_path in paths:
-        path = Path(raw_path)
-        outcome = FileOutcome(filename=path.name, sha256="")
+        try:
+            work.extend(expand(Path(raw_path), workdir))
+        except (ConversionError, zipfile.BadZipFile, OSError, ValueError) as exc:
+            summary.files_failed += 1
+            summary.files.append(FileOutcome(filename=Path(raw_path).name, sha256="",
+                                             status="failed", error=str(exc)))
+        except Exception as exc:  # noqa: BLE001 - a reader library failing on one file
+            logger.exception("conversion failed for %s", raw_path)
+            summary.files_failed += 1
+            summary.files.append(FileOutcome(filename=Path(raw_path).name, sha256="",
+                                             status="failed",
+                                             error=f"could not be converted: {exc}"))
+
+    for item in work:
+        path = item.original
+        display = item.display_name
+        outcome = FileOutcome(filename=display, sha256="")
+        outcome.notes.extend(item.notes)
         try:
             digest = sha256_file(path)
             outcome.sha256 = digest
@@ -474,7 +506,9 @@ def ingest_files(
                 summary.files.append(outcome)
                 continue
 
-            result: ExtractionResult = extract_file(path, county=county, sha256=digest)
+            result: ExtractionResult = extract_file(
+                item.readable, county=county, sha256=digest, source_name=display
+            )
             outcome.profile = result.profile
             outcome.notes.extend(result.notes)
 
@@ -499,7 +533,7 @@ def ingest_files(
             )
             stored_text = prepare_text(getattr(result, "document_text", None))
             source_file = SourceFile(
-                filename=path.name,
+                filename=display[:512],
                 sha256=digest,
                 byte_size=path.stat().st_size,
                 storage_mode=storage_mode,
@@ -549,19 +583,33 @@ def ingest_files(
                             summary.review_reasons.get(issue.code, 0) + 1
                         )
 
+            duplicates_here = 0
             for record in result.records:
                 record_county = get_or_create_county(
                     session, record.county_name or county
                 )
+                summary.records_extracted += 1
+                if find_duplicate(session, record,
+                                  record_county.id if record_county else None,
+                                  source_file_id=source_file.id) is not None:
+                    # The same report from another document: counted, not
+                    # stored twice, and never added to the totals again.
+                    duplicates_here += 1
+                    summary.records_duplicate += 1
+                    continue
                 row = persist_record(
                     session, record, source_file=source_file, county=record_county
                 )
                 new_records.append((record, row))
-                summary.records_extracted += 1
                 outcome.records += 1
                 if not record.in_coverage:
                     summary.out_of_coverage += 1
 
+            if duplicates_here:
+                outcome.notes.append(
+                    f"{duplicates_here} record(s) were already on file from another document "
+                    "and were not added again"
+                )
             summary.files_processed += 1
         except Exception as exc:  # noqa: BLE001 - one bad file must not stop a batch
             logger.exception("import failed for %s", path)
@@ -678,6 +726,7 @@ def ingest_files(
     batch.files_failed = summary.files_failed
     batch.summary = summary.to_dict()
     session.flush()
+    shutil.rmtree(workdir, ignore_errors=True)
     return summary
 
 

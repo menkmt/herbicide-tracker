@@ -205,3 +205,16 @@ class TestClustering:
 
     def test_empty_input_is_handled(self):
         assert cluster_records([]).clusters == []
+
+
+def test_a_notice_of_intent_never_merges_with_a_use_report():
+    from app.clustering.score import Outcome, score_pair
+    from app.core.coverage import DocumentKind
+
+    report = make_record(document="1001", site="291136", day=9)
+    notice = make_record(document="N-1001", site="291136", day=9)
+    notice.record_kind = DocumentKind.NOTICE_OF_INTENT
+    assert score_pair(report, notice).outcome == Outcome.SEPARATE
+    # Two use reports with the same details still group as before.
+    twin = make_record(document="1002", site="291136", day=9)
+    assert score_pair(report, twin).outcome != Outcome.SEPARATE
