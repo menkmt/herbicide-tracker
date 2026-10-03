@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from app.core.siteid import SiteIdDecodeError, parse_mtrs
 from app.models import ApplicationCluster, ClusterRecord, PlssSection, PurRecord
+from app.providers.landowner import LandManagerError, LandManagerProvider
 from app.providers.plss import PlssError, PlssProvider
 
 logger = logging.getLogger(__name__)
@@ -33,6 +34,7 @@ class SectionReport:
     errors: list[str] = field(default_factory=list)
     records_linked: int = 0
     clusters_located: int = 0
+    land_tagged: int = 0
 
     def render(self) -> str:
         lines = [
@@ -40,6 +42,7 @@ class SectionReport:
             f"fetched from the PLSS service: {self.fetched}",
             f"records linked to a section: {self.records_linked}",
             f"applications given a location: {self.clusters_located}",
+            f"sections tagged with their land manager: {self.land_tagged}",
         ]
         if self.not_found:
             lines.append(f"not found in the PLSS service: {', '.join(self.not_found[:20])}")
@@ -49,7 +52,11 @@ class SectionReport:
 
 
 def ensure_section_geometry(
-    session: Session, provider: PlssProvider | None = None, *, limit: int = 500
+    session: Session,
+    provider: PlssProvider | None = None,
+    *,
+    limit: int = 500,
+    land: LandManagerProvider | None = None,
 ) -> SectionReport:
     """Fetch and cache outlines for every section a record mentions, then give
     applications without parcel geometry their sections' outline."""
@@ -133,6 +140,31 @@ def ensure_section_geometry(
         scoring["geom_basis"] = "plss_section"
         cluster.scoring = scoring
         report.clusters_located += 1
+
+    # Who manages each section's land, at its centre: national forest,
+    # BLM, state or private. Best effort; a failure leaves it unlabelled.
+    land = land or LandManagerProvider()
+    untagged = session.execute(
+        select(PlssSection.id, func.ST_X(func.ST_Centroid(PlssSection.geom)),
+               func.ST_Y(func.ST_Centroid(PlssSection.geom)))
+        .where(PlssSection.geom.is_not(None), PlssSection.land_category.is_(None))
+        .limit(limit)
+    ).all()
+    failures = 0
+    for section_id, lon, lat in untagged:
+        try:
+            manager = land.at(lon, lat)
+        except LandManagerError as exc:
+            report.errors.append(str(exc))
+            failures += 1
+            if failures >= 3:
+                break
+            continue
+        row = session.get(PlssSection, section_id)
+        row.land_category = manager.category
+        row.land_label = manager.label
+        row.land_unit = manager.unit
+        report.land_tagged += 1
 
     session.commit()
     return report

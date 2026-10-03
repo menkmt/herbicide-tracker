@@ -41,6 +41,12 @@ SERVICES: dict[str, dict[str, str]] = {
         "needs": "layer indices for THPs, exemptions and NTMPs, and the plan number, "
                  "plan name and landowner field names",
     },
+    "land_manager": {
+        "url": "https://gis.blm.gov/arcgis/rest/services/lands/BLM_Natl_SMA_LimitedScale/"
+               "MapServer",
+        "needs": "the agency-code and unit-name field names on the surface management "
+                 "agency layer, for the national-forest / private label on the map",
+    },
     "naip": {
         "url": "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/"
                "MapServer",

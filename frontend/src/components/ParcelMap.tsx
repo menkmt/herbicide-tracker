@@ -124,6 +124,7 @@ export function ParcelMap({ source, bounds, tall, radius }: ParcelMapProps) {
   const [overlays, setOverlays] = useState<Record<string, boolean>>(
     Object.fromEntries(OVERLAYS.map((o) => [o.id, o.defaultOn])),
   );
+  const [stationsOn, setStationsOn] = useState(true);
   const [panelOpen, setPanelOpen] = useState(false);
   const [keyOpen, setKeyOpen] = useState(false);
 
@@ -215,6 +216,54 @@ export function ParcelMap({ source, bounds, tall, radius }: ParcelMapProps) {
         },
       });
 
+      // Water monitoring: where water is sampled, and whether anyone tests it
+      // for herbicides. Blue, and a different shape, so it never reads as an
+      // application.
+      try {
+        const stations = (await (await fetch("/api/map/water-stations")).json()) as GeoJSON.FeatureCollection;
+        map.addSource("stations", { type: "geojson", data: stations });
+        map.addLayer({
+          id: "stations",
+          type: "circle",
+          source: "stations",
+          paint: {
+            "circle-radius": 6,
+            "circle-color": [
+              "case",
+              ["==", ["get", "herbicides_tested"], true], "#22d3ee",
+              "#3b82f6",
+            ],
+            "circle-stroke-color": "#ffffff",
+            "circle-stroke-width": 2,
+          },
+        });
+        map.on("click", "stations", (event) => {
+          const f = event.features?.[0];
+          if (!f) return;
+          const p = f.properties as Record<string, string | boolean | null>;
+          const tested =
+            p.herbicides_tested === true ? "Tested for herbicides"
+            : p.herbicides_tested === false ? "<strong>Not tested for any herbicide</strong>"
+            : "Herbicide testing not reported";
+          new maplibregl.Popup({ maxWidth: "280px" })
+            .setLngLat(event.lngLat)
+            .setHTML(
+              `<div style="font-weight:700">${escapeHtml(String(p.name ?? "Monitoring station"))}</div>` +
+                (p.operator ? `<div>${escapeHtml(String(p.operator))}</div>` : "") +
+                `<div style="margin-top:6px">${tested}</div>` +
+                (p.analytes_note ? `<div style="font-size:.85em;opacity:.8">${escapeHtml(String(p.analytes_note))}</div>` : "") +
+                (p.note ? `<div style="margin-top:4px;font-size:.85em">${escapeHtml(String(p.note))}</div>` : "") +
+                (p.approximate ? `<div style="font-size:.8em;opacity:.7">Location approximate.</div>` : "") +
+                (p.source_url ? `<div style="margin-top:6px"><a href="${escapeHtml(String(p.source_url))}" rel="nofollow noopener">Source</a></div>` : ""),
+            )
+            .addTo(map);
+        });
+        map.on("mouseenter", "stations", () => { map.getCanvas().style.cursor = "pointer"; });
+        map.on("mouseleave", "stations", () => { map.getCanvas().style.cursor = ""; });
+      } catch {
+        // The stations layer is optional; the map works without it.
+      }
+
       if (radius) {
         map.addSource("radius", { type: "geojson", data: circle(radius) });
         map.addLayer({
@@ -235,7 +284,8 @@ export function ParcelMap({ source, bounds, tall, radius }: ParcelMapProps) {
           ? `<div style="margin-top:6px;color:#ff8a8a"><strong>${escapeHtml(p.flag_headline)}</strong></div>`
           : "";
         const where = section
-          ? `<div>Reported section ${escapeHtml(p.mtrs ?? "")}</div>`
+          ? `<div>Reported section ${escapeHtml(p.mtrs ?? "")}</div>` +
+            (p.land ? `<div>${escapeHtml(p.land)} <span style="opacity:.7">(at the section's centre)</span></div>` : "")
           : p.apn ? `<div>Parcel ${escapeHtml(p.apn)}</div>` : "";
         const caveat = section
           ? "Dashed square is the one-square-mile section the use report names. " +
@@ -279,6 +329,7 @@ export function ParcelMap({ source, bounds, tall, radius }: ParcelMapProps) {
     const map = mapRef.current;
     if (!map) return;
     const apply = () => {
+      if (map.getLayer("stations")) map.setLayoutProperty("stations", "visibility", stationsOn ? "visible" : "none");
       for (const b of BASEMAPS) {
         if (map.getLayer(b.id)) map.setLayoutProperty(b.id, "visibility", b.id === basemap ? "visible" : "none");
       }
@@ -288,7 +339,7 @@ export function ParcelMap({ source, bounds, tall, radius }: ParcelMapProps) {
     };
     if (map.isStyleLoaded()) apply();
     else map.once("styledata", apply);
-  }, [basemap, overlays]);
+  }, [basemap, overlays, stationsOn]);
 
   if (error) {
     return (
@@ -324,6 +375,10 @@ export function ParcelMap({ source, bounds, tall, radius }: ParcelMapProps) {
                 {o.label}
               </label>
             ))}
+            <label>
+              <input type="checkbox" checked={stationsOn} onChange={() => setStationsOn((v) => !v)} />
+              Water monitoring stations
+            </label>
           </div>
         )}
       </div>
@@ -339,6 +394,7 @@ export function ParcelMap({ source, bounds, tall, radius }: ParcelMapProps) {
             <div><span className="sw sw-section" /> Application, reported section only</div>
             <div><span className="sw sw-red" /> Restricted or watch-listed chemical</div>
             <div><span className="sw sw-water" /> Streams &amp; water (USGS)</div>
+            <div><span className="sw sw-station" /> Water monitoring station</div>
             <p className="small muted" style={{ margin: "8px 0 0" }}>
               Outlines show property or the reported square mile — never the area sprayed.
             </p>

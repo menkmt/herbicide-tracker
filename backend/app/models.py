@@ -115,6 +115,11 @@ class PlssSection(Base, TimestampMixin):
     geom = mapped_column(Geometry("MULTIPOLYGON", srid=SRID), nullable=True)
     source: Mapped[str | None] = mapped_column(String(120))
     retrieved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    #: Who manages the land at the section's centre: national_forest | blm |
+    #: federal | state | local | tribal | private. See app.providers.landowner.
+    land_category: Mapped[str | None] = mapped_column(String(24))
+    land_label: Mapped[str | None] = mapped_column(String(120))
+    land_unit: Mapped[str | None] = mapped_column(String(160))
 
 
 class Parcel(Base, TimestampMixin):
@@ -962,3 +967,31 @@ class Inspection(Base, TimestampMixin):
     violations_count: Mapped[int | None] = mapped_column(Integer)
     notes: Mapped[str | None] = mapped_column(Text)
     provenance: Mapped[dict | None] = mapped_column(JSON)
+
+
+
+class WaterStation(Base, TimestampMixin):
+    """A place where water is sampled, and whether anyone tests it for herbicides.
+
+    The point of the layer is the contrast: spraying on one side, monitoring
+    (or its absence) on the other. ``herbicides_tested`` is null when nobody
+    has said either way.
+    """
+
+    __tablename__ = "water_stations"
+    __table_args__ = (UniqueConstraint("name", "operator", name="uq_water_station"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    operator: Mapped[str | None] = mapped_column(String(200))
+    #: surface_water | groundwater | drinking_water | other
+    kind: Mapped[str] = mapped_column(String(24), default="other")
+    latitude: Mapped[float] = mapped_column(Float, nullable=False)
+    longitude: Mapped[float] = mapped_column(Float, nullable=False)
+    location_is_approximate: Mapped[bool] = mapped_column(Boolean, default=False)
+    herbicides_tested: Mapped[bool | None] = mapped_column(Boolean)
+    analytes_note: Mapped[str | None] = mapped_column(Text)
+    last_sampled: Mapped[date | None] = mapped_column(Date)
+    source_url: Mapped[str | None] = mapped_column(Text)
+    note: Mapped[str | None] = mapped_column(Text)
+    county_id: Mapped[int | None] = mapped_column(ForeignKey("counties.id"))

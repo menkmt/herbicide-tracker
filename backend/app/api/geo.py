@@ -20,6 +20,7 @@ from app.models import (
     Parcel,
     PlssSection,
     PurRecord,
+    WaterStation,
 )
 from app.providers.geocode import GeocodeError, get_geocoder
 
@@ -128,6 +129,8 @@ def map_applications(
             ApplicationCluster.flags,
             PlssSection.mtrs,
             geo.ST_AsGeoJSON(PlssSection.geom),
+            PlssSection.land_label,
+            PlssSection.land_unit,
         )
         .join(ClusterRecord, ClusterRecord.cluster_id == ApplicationCluster.id)
         .join(PurRecord, PurRecord.id == ClusterRecord.record_id)
@@ -149,12 +152,14 @@ def map_applications(
     # to the JSON flags column.)
     drawn: set[tuple[int, str]] = set()
     for row in session.execute(sections.limit(limit * 4)).all():
-        (cid, slug_, title, start, acres, method, owner, flags, mtrs, geometry) = row
+        (cid, slug_, title, start, acres, method, owner, flags, mtrs, geometry,
+         land_label, land_unit) = row
         if cid in with_parcels or not geometry or (cid, mtrs) in drawn:
             continue
         drawn.add((cid, mtrs))
         features.append(feature(cid, slug_, title, start, acres, method, owner, flags, geometry,
-                                mtrs=mtrs, geometry_kind="section"))
+                                mtrs=mtrs, geometry_kind="section",
+                                land=land_unit or land_label))
 
     return {"type": "FeatureCollection", "features": features}
 
@@ -251,4 +256,31 @@ def radius_search(
             "where the parcels are not yet identified"
         ),
         "privacy_note": "The searched address is not stored.",
+    }
+
+
+@router.get("/map/water-stations")
+def water_stations(session: Session = Depends(get_session), _: Principal = Depends(rate_limit)):
+    """Where water is sampled, and whether anyone tests it for herbicides."""
+    rows = session.scalars(select(WaterStation).order_by(WaterStation.name)).all()
+    return {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [w.longitude, w.latitude]},
+                "properties": {
+                    "name": w.name,
+                    "operator": w.operator,
+                    "kind": w.kind,
+                    "approximate": w.location_is_approximate,
+                    "herbicides_tested": w.herbicides_tested,
+                    "analytes_note": w.analytes_note,
+                    "last_sampled": w.last_sampled.isoformat() if w.last_sampled else None,
+                    "source_url": w.source_url,
+                    "note": w.note,
+                },
+            }
+            for w in rows
+        ],
     }

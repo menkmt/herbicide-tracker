@@ -351,6 +351,7 @@ header.site nav a.support { color: var(--cyan); }
 .sw-section { background: rgba(255, 177, 86, 0.12); border: 2px dashed #ffb156; }
 .sw-red { background: rgba(255, 107, 107, 0.3); border: 2px solid #ff6b6b; }
 .sw-water { background: #5aa9ff; height: 4px; vertical-align: 3px; }
+.sw-station { width: 12px; height: 12px; border-radius: 50%; background: #3b82f6; border: 2px solid #fff; }
 .map-empty {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 4;
   background: rgba(19, 26, 46, 0.9); border: 1px solid var(--line); border-radius: 12px;

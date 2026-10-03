@@ -93,3 +93,25 @@ letters and the commissioner's name; and the admin dashboard takes a county's
 inspection log as a CSV with columns matched by meaning. A parser for
 individual inspection report forms (DPR PR-ENF-006 and county variants) is
 not written yet — it needs a real sample to be written against.
+
+
+## Map
+
+Applications draw as parcel outlines where the property is identified and as
+their reported PLSS section (dashed) where it is not, so every published
+application is on the map from the moment it is imported. Section outlines
+come from the BLM CadNSDI service by exact FRSTDIVID and are cached; each
+section is also tagged with its land manager (national forest, BLM, state,
+private) from the BLM Surface Management Agency layer, at its centre.
+
+Basemaps: Esri satellite, USGS satellite, CARTO streets, OpenTopoMap and USGS
+topo, with the USGS streams-and-water layer on top by default and a BLM land
+ownership overlay. **Before selling access, license Esri, CARTO and
+OpenTopoMap or delete their entries in `frontend/src/components/ParcelMap.tsx`;
+the USGS layers are public domain.**
+
+Water-monitoring stations load from a CSV on the admin page and show whether
+each station is tested for herbicides.
+
+The land-manager field names are written against the SMA layer's documented
+schema; `python -m scripts.probe_gis` on the server confirms them.

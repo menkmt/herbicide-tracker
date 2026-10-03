@@ -189,6 +189,21 @@
     <pre class="summary" id="inspSummary" style="display:none"></pre>
   </div>
 
+  <h2>Water monitoring stations</h2>
+  <div class="panel">
+    <p class="small muted" style="margin-top:0">
+      A CSV of places where water is sampled. Needs name, latitude and longitude; also reads
+      operator, type (surface/well/drinking), herbicides tested (yes/no), analytes, last sampled,
+      source URL, notes and whether the location is approximate. Re-uploading updates stations
+      with the same name and operator.
+    </p>
+    <div class="row">
+      <input id="wsFile" type="file" accept=".csv,.txt" />
+      <button id="wsImport">Load stations</button>
+      <span id="wsStatus" class="small muted"></span>
+    </div>
+  </div>
+
   <h2>Review queue</h2>
   <div class="panel" id="queue"><p class="muted small">Loading…</p></div>
 
@@ -391,6 +406,20 @@ async function loadTraffic() {
 }
 
 $("refresh").addEventListener("click", () => { loadQueue(); loadTraffic(); });
+
+$("wsImport").addEventListener("click", async () => {
+  const file = $("wsFile").files[0];
+  if (!authed() || !file) { $("wsStatus").innerHTML = '<span class="err">Choose a file.</span>'; return; }
+  const body = new FormData();
+  body.append("file", file);
+  $("wsStatus").textContent = "Loading…";
+  try {
+    const response = await fetch("/api/admin/water-stations/import", { method: "POST", headers: headers(), body });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Import failed");
+    $("wsStatus").textContent = `${data.added} added, ${data.updated} updated, ${data.skipped} skipped (no coordinates or outside California).`;
+  } catch (error) { $("wsStatus").innerHTML = '<span class="err">' + escapeHtml(error.message) + "</span>"; }
+});
 
 // --- county oversight ------------------------------------------------------
 const countySlug = () => $("rcCounty").value.trim().toLowerCase().replace(/\s+county$/, "").replace(/\s+/g, "-");
