@@ -41,6 +41,8 @@ docker compose exec -T api alembic upgrade head 2>&1 | tail -2 | tee -a "$LOG"
 # Bundled sample records (idempotent: skipped once loaded) and section
 # outlines for anything imported since the last run.
 docker compose exec -T api python -m scripts.import_seed 2>&1 | grep -v '^INFO' | tail -8 | tee -a "$LOG"
+# Websites, phones and emails for businesses not checked in the last 90 days.
+docker compose exec -T api python -m app.jobs.enrich_companies --limit 40 2>&1 | grep -v '^INFO' | tail -6 | tee -a "$LOG"
 
 # Old image layers pile up at a few hundred MB per frontend build.
 docker image prune -f >/dev/null 2>&1 || true

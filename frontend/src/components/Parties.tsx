@@ -18,9 +18,14 @@ function Contact({ c }: { c: PartyCompany }) {
   ].filter(Boolean);
   if (bits.length === 0) return null;
   return (
-    <div className="party-contact">
-      {bits.map((b, i) => (<span key={i}>{i > 0 && " · "}{b}</span>))}
-    </div>
+    <>
+      <div className="party-contact">
+        {bits.map((b, i) => (<span key={i}>{i > 0 && " · "}{b}</span>))}
+      </div>
+      {c.contact_evidence && (
+        <div className="muted tiny">Website matched because {c.contact_evidence}.</div>
+      )}
+    </>
   );
 }
 

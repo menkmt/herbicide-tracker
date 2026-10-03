@@ -658,7 +658,16 @@ class Company(Base, TimestampMixin):
     email: Mapped[str | None] = mapped_column(String(160))
     website: Mapped[str | None] = mapped_column(Text)
     #: Enriched contact details are held back until an administrator approves.
+    #: none | auto_verified (site shows the permit's phone) | pending |
+    #: approved | rejected. Website and email publish only when auto_verified
+    #: or approved; see app.providers.enrichment.website.
     contact_review_state: Mapped[str] = mapped_column(String(24), default="none")
+    #: Where the phone number came from ("permit 18-24-4500033 contact list").
+    phone_source: Mapped[str | None] = mapped_column(String(160))
+    #: The page the website and email were read from, and why it is believed.
+    contact_source_url: Mapped[str | None] = mapped_column(Text)
+    contact_evidence: Mapped[str | None] = mapped_column(Text)
+    contact_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     is_published: Mapped[bool] = mapped_column(Boolean, default=False)
 
     aliases: Mapped[list[CompanyAlias]] = relationship(

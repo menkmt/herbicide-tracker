@@ -189,6 +189,22 @@
     <pre class="summary" id="inspSummary" style="display:none"></pre>
   </div>
 
+  <h2>Company contacts</h2>
+  <div class="panel">
+    <p class="small muted" style="margin-top:0">
+      Website, phone and email for every business in the records. Found automatically: a site
+      that shows the same phone number as the county permit publishes on its own
+      (<b>verified</b>); a site with the right name but no matching phone waits here for you.
+      You can also type details in yourself.
+    </p>
+    <div class="row">
+      <button class="ghost" id="coLoad">Show companies</button>
+      <button id="coRun">Look up websites now</button>
+      <span id="coStatus" class="small muted"></span>
+    </div>
+    <div id="coList" style="margin-top:12px"></div>
+  </div>
+
   <h2>People photos</h2>
   <div class="panel">
     <p class="small muted" style="margin-top:0">
@@ -265,6 +281,7 @@ async function detectAuth() {
     $("signedin").innerHTML = "Signed in as <b>admin</b>. Everything you do here is logged.";
     loadQueue();
     loadTraffic();
+    loadCompanies();
   } else {
     $("tokenField").style.display = "";
     $("signedin").textContent = "No proxy login on this deployment: paste TRACKER_ADMIN_TOKEN to use this page. It is held in this tab only.";
@@ -425,6 +442,59 @@ async function loadTraffic() {
 }
 
 $("refresh").addEventListener("click", () => { loadQueue(); loadTraffic(); });
+
+const CO_STATE = { pending: "waiting for you", none: "not found yet", auto_verified: "verified",
+                   approved: "approved", rejected: "rejected" };
+
+async function loadCompanies() {
+  if (!authed()) return;
+  const response = await fetch("/api/admin/companies", { headers: headers() });
+  const data = await response.json();
+  if (!response.ok) { $("coList").innerHTML = '<p class="err small">' + escapeHtml(data.detail || "Failed") + "</p>"; return; }
+  const rows = data.companies.map((c) => `
+    <tr data-id="${c.id}">
+      <td><b>${escapeHtml(c.name)}</b><div class="small muted">${escapeHtml(c.type || "")}${c.license ? " · licence " + escapeHtml(c.license) : ""}</div></td>
+      <td><input class="co-web" value="${escapeHtml(c.website || "")}" size="22" placeholder="website" /></td>
+      <td><input class="co-phone" value="${escapeHtml(c.phone || "")}" size="13" placeholder="phone" />
+          <div class="small muted">${escapeHtml(c.phone_source || "")}</div></td>
+      <td><input class="co-email" value="${escapeHtml(c.email || "")}" size="20" placeholder="email" /></td>
+      <td><span class="pill ${c.state === "pending" ? "review" : c.state === "auto_verified" || c.state === "approved" ? "ready" : ""}">${CO_STATE[c.state] || c.state}</span>
+          <div class="small muted">${escapeHtml(c.evidence || "")}</div></td>
+      <td style="white-space:nowrap"><button class="co-ok">Approve</button> <button class="ghost co-no">Reject</button></td>
+    </tr>`).join("");
+  $("coList").innerHTML = rows ? `<table><thead><tr><th>Company</th><th>Website</th><th>Phone</th><th>Email</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+                               : '<p class="muted small">No companies yet. Import records, then look up websites.</p>';
+  $("coList").querySelectorAll("tr[data-id]").forEach((tr) => {
+    const id = tr.dataset.id;
+    const send = async (decision) => {
+      const body = decision === "reject" ? { decision } : {
+        decision: "approve",
+        website: tr.querySelector(".co-web").value,
+        phone: tr.querySelector(".co-phone").value,
+        email: tr.querySelector(".co-email").value,
+      };
+      const r = await fetch(`/api/admin/companies/${id}/contact`, {
+        method: "POST", headers: { ...headers(), "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      $("coStatus").textContent = r.ok ? "Saved." : "Could not save.";
+      loadCompanies();
+    };
+    tr.querySelector(".co-ok").addEventListener("click", () => send("approve"));
+    tr.querySelector(".co-no").addEventListener("click", () => send("reject"));
+  });
+}
+
+$("coLoad").addEventListener("click", loadCompanies);
+$("coRun").addEventListener("click", async () => {
+  if (!authed()) return;
+  $("coStatus").textContent = "Looking up websites… this takes a minute or two.";
+  try {
+    const r = await fetch("/api/admin/companies/lookup?limit=15", { method: "POST", headers: headers() });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || "Lookup failed");
+    $("coStatus").textContent = `Checked ${data.checked}: ${data.verified.length} verified, ${data.pending.length} waiting for you, ${data.not_found.length} not found.`;
+    loadCompanies();
+  } catch (error) { $("coStatus").innerHTML = '<span class="err">' + escapeHtml(error.message) + "</span>"; }
+});
 
 $("phUpload").addEventListener("click", async () => {
   const file = $("phFile").files[0];

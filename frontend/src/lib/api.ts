@@ -223,7 +223,8 @@ export interface PartyCompany {
   slug?: string;
   website?: string | null;
   phone?: string | null;
-  phone_source?: string;
+  phone_source?: string | null;
+  contact_evidence?: string | null;
   email?: string | null;
   address?: string | null;
   license?: string | null;

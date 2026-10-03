@@ -67,12 +67,17 @@ def _company(session: Session, name: str | None) -> dict | None:
     row = session.scalar(select(Company).where(Company.name_key == company_key(name)))
     if row is None:
         return {"name": name}
+    # Web-found details publish only when the site showed the permit's phone
+    # number, or an administrator approved them.
+    confirmed = row.contact_review_state in ("auto_verified", "approved")
     return {
         "name": row.name,
         "slug": row.slug,
-        "website": row.website,
+        "website": row.website if confirmed else None,
+        "email": row.email if confirmed else None,
         "phone": row.phone,
-        "email": row.email,
+        "phone_source": row.phone_source,
+        "contact_evidence": row.contact_evidence if confirmed else None,
         "address": row.business_address,
         "license": row.dpr_license,
     }
@@ -133,7 +138,7 @@ def parties_for(
             )
             if primary and not operator.get("phone"):
                 operator["phone"] = primary.phone
-                operator["phone_source"] = f"contact list, permit {permit.permit_number}"
+                operator["phone_source"] = f"permit {permit.permit_number} contact list"
             operator["permit_number"] = permit.permit_number
             operator["operator_id"] = primary.license_number if primary else None
 
@@ -168,10 +173,11 @@ def parties_for(
                     "permit": permit.permit_number,
                 })
             elif PCB_TYPES.search(ctype) and c.license_number:
+                found = _company(session, c.name) or {"name": c.name}
                 businesses.setdefault(c.license_number, {
-                    **(_company(session, c.name) or {"name": c.name}),
+                    **found,
                     "license": c.license_number,
-                    "phone": c.phone,
+                    "phone": c.phone or found.get("phone"),
                     "expires": c.license_expiration.isoformat() if c.license_expiration else None,
                     "permit": permit.permit_number,
                 })
