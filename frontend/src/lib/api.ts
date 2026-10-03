@@ -111,11 +111,29 @@ export interface ApplicationRow {
   url: string;
 }
 
+export interface ProjectDocument {
+  id: number;
+  title: string;
+  filename: string;
+  content_type: string;
+  url: string;
+  source: string | null;
+}
+
+export interface ProjectInfo {
+  identifier: string;
+  name: string | null;
+  kind: string | null;
+  has_boundary: boolean;
+  documents: ProjectDocument[];
+}
+
 export interface ApplicationDetail extends ApplicationRow {
   mtrs: string[];
   site_ids: string[];
   permit_numbers: string[];
   parties?: Parties;
+  project?: ProjectInfo | null;
   confidence: string;
   flags: FlagSummary | null;
   parcels: Array<{

@@ -30,6 +30,8 @@ dependencies = [
     "odfpy>=1.4",
     "striprtf>=0.0.26",
     "pillow-heif>=0.16",
+    # Zipped shapefiles of THP and project boundaries (app/maps/boundaries.py).
+    "pyshp>=2.3",
 ]
 
 [project.optional-dependencies]

@@ -10,7 +10,8 @@ holds is read again, oldest first, exactly as if it had just been uploaded.
 
 Kept untouched: the original files, people and their photos, companies and
 their contact details, county commissioners and records status, inspection
-logs, water stations, visitor counts. Rebuilt: use records, notices,
+logs, water stations, visitor counts, THP / project maps (and which
+applications they were linked to). Rebuilt: use records, notices,
 permits, applications and the review queue. Applications the pipeline marks
 ready are published again; anything held for review waits for review again.
 """
@@ -24,11 +25,13 @@ import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
+from geoalchemy2.shape import to_shape
 from sqlalchemy import select, text
 
+from app.api.projects import locate_in_project
 from app.db import SessionLocal
 from app.maps.sections import ensure_section_geometry
-from app.models import ApplicationCluster, County, SourceFile
+from app.models import ApplicationCluster, County, Project, SourceFile
 from app.pipeline.ingest import ingest_files
 from app.pipeline.storage import get_storage
 
@@ -72,6 +75,12 @@ def main() -> int:
         county = session.get(County, s.county_id).name if s.county_id else None
         plan.append((target, county, s.origin or "upload"))
 
+    # Project links live on the applications being rebuilt; remember them by
+    # slug and put them back afterwards.
+    project_links = dict(session.execute(
+        select(ApplicationCluster.slug, ApplicationCluster.project_id)
+        .where(ApplicationCluster.project_id.is_not(None))).all())
+
     # Clear derived data. Records and permits go after their children; source
     # file rows are recreated by the re-import (inspection logs are kept).
     session.execute(text("UPDATE pur_records SET fulfilled_by_record_id = NULL"))
@@ -101,6 +110,18 @@ def main() -> int:
     shutil.rmtree(tmp, ignore_errors=True)
 
     print(ensure_section_geometry(session).render())
+    relinked = 0
+    for slug, project_id in project_links.items():
+        cluster = session.scalar(select(ApplicationCluster).where(ApplicationCluster.slug == slug))
+        project = session.get(Project, project_id)
+        if cluster is None or project is None:
+            continue
+        cluster.project_id = project.id
+        if project.geom is not None:
+            locate_in_project(session, cluster, to_shape(project.geom))
+        relinked += 1
+    if project_links:
+        print(f"{relinked} of {len(project_links)} project map link(s) restored")
     ready = session.scalars(
         select(ApplicationCluster).where(ApplicationCluster.status == "ready")).all()
     for c in ready:

@@ -1015,3 +1015,20 @@ class SearchUsage(Base):
 
     month: Mapped[str] = mapped_column(String(7), primary_key=True)  # "2026-10"
     count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+
+
+class ProjectDocument(Base, TimestampMixin):
+    """A map or plan document for a forestry project (a THP map, say), shown
+    on the pages of the applications linked to the project."""
+
+    __tablename__ = "project_documents"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    filename: Mapped[str] = mapped_column(String(512), nullable=False)
+    content_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    storage_key: Mapped[str] = mapped_column(Text, nullable=False)
+    byte_size: Mapped[int | None] = mapped_column(Integer)
+    source_note: Mapped[str | None] = mapped_column(Text)

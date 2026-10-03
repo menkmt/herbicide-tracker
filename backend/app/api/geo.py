@@ -19,6 +19,7 @@ from app.models import (
     County,
     Parcel,
     PlssSection,
+    Project,
     PurRecord,
     WaterStation,
 )
@@ -116,6 +117,41 @@ def map_applications(
         features.append(feature(cid, slug_, title, start, acres, method, owner, flags, geometry,
                                 apn=apn, geometry_kind="parcel"))
 
+    # Applications placed by a THP / project boundary: the part of the unit
+    # inside their reported sections, drawn instead of the whole sections.
+    located = (
+        select(
+            ApplicationCluster.id,
+            ApplicationCluster.slug,
+            ApplicationCluster.title,
+            ApplicationCluster.date_start,
+            ApplicationCluster.total_acres,
+            ApplicationCluster.method,
+            ApplicationCluster.owner_name,
+            ApplicationCluster.flags,
+            geo.ST_AsGeoJSON(ApplicationCluster.geom),
+        )
+        .where(ApplicationCluster.status == "published", ApplicationCluster.geom.isnot(None),
+               ApplicationCluster.scoring["geom_basis"].as_string() == "project_boundary")
+    )
+    if slug:
+        located = located.where(ApplicationCluster.slug == slug)
+    if county:
+        located = located.join(County, ApplicationCluster.county_id == County.id).where(
+            County.slug == county
+        )
+    if year:
+        located = located.where(func.extract("year", ApplicationCluster.date_start) == year)
+    if bbox:
+        located = located.where(geo.ST_Intersects(ApplicationCluster.geom, envelope))
+    for row in session.execute(located.limit(limit)).all():
+        (cid, slug_, title, start, acres, method, owner, flags, geometry) = row
+        if cid in with_parcels or not geometry:
+            continue
+        with_parcels.add(cid)
+        features.append(feature(cid, slug_, title, start, acres, method, owner, flags, geometry,
+                                geometry_kind="project_area"))
+
     # Applications whose parcels are not matched yet: their reported sections.
     sections = (
         select(
@@ -160,6 +196,45 @@ def map_applications(
         features.append(feature(cid, slug_, title, start, acres, method, owner, flags, geometry,
                                 mtrs=mtrs, geometry_kind="section",
                                 land=land_unit or land_label))
+
+    # Project (THP) boundaries for the applications in view, once per project,
+    # whether or not the application has parcels or sections of its own yet.
+    shown = select(ApplicationCluster.id).where(ApplicationCluster.status == "published",
+                                                ApplicationCluster.project_id.isnot(None))
+    if slug:
+        shown = shown.where(ApplicationCluster.slug == slug)
+    if county:
+        shown = shown.join(County, ApplicationCluster.county_id == County.id).where(
+            County.slug == county)
+    if year:
+        shown = shown.where(func.extract("year", ApplicationCluster.date_start) == year)
+    in_view: dict[int, list[dict]] = {}
+    for pid, slug_, title, start in session.execute(
+        select(ApplicationCluster.project_id, ApplicationCluster.slug, ApplicationCluster.title,
+               ApplicationCluster.date_start)
+        .where(ApplicationCluster.id.in_(shown.scalar_subquery()))
+        .order_by(ApplicationCluster.date_start)
+    ).all():
+        in_view.setdefault(pid, []).append(
+            {"slug": slug_, "title": title, "date": start.isoformat() if start else None})
+    if in_view:
+        projects = session.execute(
+            select(Project.id, Project.identifier, Project.name, Project.kind,
+                   geo.ST_AsGeoJSON(Project.geom))
+            .where(Project.id.in_(in_view), Project.geom.isnot(None))
+        ).all()
+        for pid, ident, pname, kind, geometry in projects:
+            features.append({
+                "type": "Feature",
+                "geometry": json.loads(geometry),
+                "properties": {"geometry_kind": "project", "project_id": pid,
+                               "title": f"{kind or 'Project'} {ident}",
+                               "name": pname,
+                               # GeoJSON properties are flat for MapLibre; the
+                               # popup parses this back.
+                               "applications": json.dumps(in_view[pid][:12]),
+                               "application_count": len(in_view[pid])},
+            })
 
     return {"type": "FeatureCollection", "features": features}
 

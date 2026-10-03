@@ -302,6 +302,35 @@ def persist_record(
     return row
 
 
+def merge_products(session: Session, row: PurRecordRow, record: PurRecord) -> None:
+    """Add the product lines of a continuation page to the report it continues,
+    skipping lines it already has."""
+    have = {
+        (p.base_epa_reg_no or p.product_name, float(p.quantity) if p.quantity is not None else None)
+        for p in session.scalars(select(PurProduct).where(PurProduct.record_id == row.id))
+    }
+    for product in record.products:
+        key = (product.base_epa_reg_no or product.product_name,
+               float(product.quantity) if product.quantity is not None else None)
+        if key in have:
+            continue
+        have.add(key)
+        quantity = normalize_quantity(
+            product.quantity, product.quantity_units, product_name=product.product_name
+        )
+        session.add(PurProduct(
+            record_id=row.id, product_name=product.product_name, epa_reg_no=product.epa_reg_no,
+            base_epa_reg_no=product.base_epa_reg_no, distributor_suffix=product.distributor_suffix,
+            quantity=product.quantity, quantity_units=product.quantity_units,
+            treated_amount=product.treated_amount, treated_units=product.treated_units,
+            registration_expired=product.registration_expired,
+            gallons=quantity.gallons, pounds=quantity.pounds,
+        ))
+    if row.treated_amount is None and record.treated_amount is not None:
+        row.treated_amount, row.treated_units = record.treated_amount, record.treated_units
+    session.flush()
+
+
 #: Header fields a second copy of a permit may supply.
 PERMIT_HEADER_FIELDS = (
     "operator_name", "operator_id", "agent_name", "applicant_name", "applicant_title",
@@ -588,6 +617,10 @@ def ingest_files(
                             )
 
                 duplicates_here = 0
+                merged_here = 0
+                # A scanned form continued onto a second page reads as two
+                # records with one document number; they are one report.
+                in_file: dict[tuple, PurRecordRow] = {}
                 for record in result.records:
                     record_county = get_or_create_county(
                         session, record.county_name or county
@@ -601,14 +634,26 @@ def ingest_files(
                         duplicates_here += 1
                         summary.records_duplicate += 1
                         continue
+                    start, _ = record.date_range
+                    identity = (record.document_number, record.site_id, start)
+                    if record.document_number and identity in in_file:
+                        merge_products(session, in_file[identity], record)
+                        merged_here += 1
+                        continue
                     row = persist_record(
                         session, record, source_file=source_file, county=record_county
                     )
+                    in_file[identity] = row
                     new_records.append((record, row))
                     outcome.records += 1
                     if not record.in_coverage:
                         summary.out_of_coverage += 1
 
+                if merged_here:
+                    outcome.notes.append(
+                        f"{merged_here} continuation(s) of a report already read from this "
+                        "file were merged into it"
+                    )
                 if duplicates_here:
                     outcome.notes.append(
                         f"{duplicates_here} record(s) were already on file from another document "

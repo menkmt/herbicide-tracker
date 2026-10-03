@@ -226,6 +226,41 @@
     </div>
   </div>
 
+  <h2>THP / project maps</h2>
+  <div class="panel">
+    <p class="small muted" style="margin-top:0">
+      Link a THP (or other project) to the applications that happened in it. A boundary file
+      (KML, KMZ, GeoJSON or a zipped shapefile from CalTREES / Google Earth) is drawn on the map
+      and pins each linked application to the part of the unit inside its reported sections.
+      A map PDF or image is shown on each linked application's page. Send either or both; a new
+      boundary replaces the old one, documents add up.
+    </p>
+    <div class="row">
+      <div><label for="pjId">THP / project number</label><br /><input id="pjId" size="18" placeholder="e.g. 2-21-00045-LAS" /></div>
+      <div><label for="pjKind">Kind</label><br />
+        <select id="pjKind">
+          <option>THP</option><option>NTMP</option><option>Exemption</option>
+          <option>Emergency</option><option>Fuels project</option><option>Federal project</option><option>Other</option>
+        </select></div>
+      <div><label for="pjName">Name (optional)</label><br /><input id="pjName" size="22" placeholder="e.g. Pine Creek THP" /></div>
+      <div style="flex:1 1 240px"><label for="pjSource">Source</label><br /><input id="pjSource" style="width:100%" placeholder="e.g. CAL FIRE CalTREES, CPRA response" /></div>
+    </div>
+    <div style="margin-top:10px">
+      <label for="pjFilter">Applications in this project</label>
+      <button class="ghost" id="pjLoad" style="margin-left:8px">Load applications</button>
+      <span id="pjPicked" class="small muted"></span><br />
+      <input id="pjFilter" size="40" placeholder="Filter by name, county, date (e.g. beaty 2021)" style="margin-top:6px" />
+      <div id="pjApps" style="max-height:240px;overflow:auto;margin-top:6px;border:1px solid rgba(127,127,127,.25);border-radius:8px;padding:6px 10px">
+        <span class="small muted">Press Load applications.</span>
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <input id="pjFiles" type="file" multiple accept=".kml,.kmz,.geojson,.json,.zip,.pdf,.png,.jpg,.jpeg,.webp,.gif" />
+      <button id="pjUpload">Save project map</button>
+      <span id="pjStatus" class="small muted"></span>
+    </div>
+  </div>
+
   <h2>Water monitoring stations</h2>
   <div class="panel">
     <p class="small muted" style="margin-top:0">
@@ -284,6 +319,7 @@ async function detectAuth() {
     loadQueue();
     loadTraffic();
     loadCompanies();
+    $("pjLoad").click();
   } else {
     $("tokenField").style.display = "";
     $("signedin").textContent = "No proxy login on this deployment: paste TRACKER_ADMIN_TOKEN to use this page. It is held in this tab only.";
@@ -540,6 +576,76 @@ $("wsImport").addEventListener("click", async () => {
     $("wsStatus").textContent = `${data.added} added, ${data.updated} updated, ${data.skipped} skipped (no coordinates or outside California).`;
     $("wsFile").value = "";
   } catch (error) { $("wsStatus").innerHTML = '<span class="err">' + escapeHtml(error.message) + "</span>"; }
+});
+
+// --- THP / project maps ----------------------------------------------------
+let pjApps = [];
+const pjChosen = new Set();
+
+function renderProjectApps() {
+  const words = $("pjFilter").value.toLowerCase().split(/\s+/).filter(Boolean);
+  const shown = pjApps.filter((a) => {
+    const text = `${a.title} ${a.county || ""} ${a.date || ""} ${a.project || ""} ${a.slug}`.toLowerCase();
+    return words.every((w) => text.includes(w));
+  }).slice(0, 300);
+  $("pjApps").innerHTML = shown.length ? shown.map((a) => `
+    <label style="display:block;padding:2px 0">
+      <input type="checkbox" data-slug="${escapeHtml(a.slug)}" ${pjChosen.has(a.slug) ? "checked" : ""} />
+      ${escapeHtml(a.title)} <span class="small muted">· ${escapeHtml(a.date || "no date")} · ${escapeHtml(a.county || "")}
+      · ${escapeHtml(a.status.replace(/_/g, " "))}${a.project ? " · in " + escapeHtml(a.project) : ""}</span>
+    </label>`).join("") : '<span class="small muted">No applications match.</span>';
+  $("pjPicked").textContent = pjChosen.size ? `${pjChosen.size} selected` : "";
+}
+
+$("pjApps").addEventListener("change", (event) => {
+  const slug = event.target.dataset && event.target.dataset.slug;
+  if (!slug) return;
+  if (event.target.checked) pjChosen.add(slug); else pjChosen.delete(slug);
+  $("pjPicked").textContent = pjChosen.size ? `${pjChosen.size} selected` : "";
+});
+$("pjFilter").addEventListener("input", renderProjectApps);
+$("pjLoad").addEventListener("click", async () => {
+  if (!authed()) return;
+  try {
+    const response = await fetch("/api/admin/applications/options", { headers: headers() });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.detail || "Could not load applications");
+    pjApps = data.applications;
+    renderProjectApps();
+  } catch (error) { $("pjApps").innerHTML = '<span class="err">' + escapeHtml(error.message) + "</span>"; }
+});
+
+$("pjUpload").addEventListener("click", async () => {
+  const id = $("pjId").value.trim();
+  const chosen = $("pjFiles").files;
+  if (!authed() || id.length < 2) { $("pjStatus").innerHTML = '<span class="err">Enter the THP / project number.</span>'; return; }
+  if (!chosen.length && !pjChosen.size) { $("pjStatus").innerHTML = '<span class="err">Choose files or applications.</span>'; return; }
+  const body = new FormData();
+  body.append("identifier", id);
+  body.append("kind", $("pjKind").value);
+  if ($("pjName").value.trim()) body.append("name", $("pjName").value.trim());
+  if ($("pjSource").value.trim()) body.append("source", $("pjSource").value.trim());
+  body.append("applications", [...pjChosen].join(","));
+  for (const f of chosen) body.append("files", f);
+  $("pjStatus").textContent = "Saving…";
+  try {
+    const response = await fetch("/api/admin/projects/map", { method: "POST", headers: headers(), body });
+    const text = await response.text();
+    let data;
+    try { data = JSON.parse(text); } catch { throw new Error(`Server error (${response.status}): ${text.slice(0, 200)}`); }
+    if (!response.ok) throw new Error(typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail));
+    const parts = [`${data.project} saved`];
+    if (data.boundary) parts.push("boundary drawn");
+    if (data.documents.length) parts.push(`${data.documents.length} map document(s) added`);
+    if (data.linked.length) parts.push(`${data.linked.length} application(s) linked`);
+    $("pjStatus").innerHTML = escapeHtml(parts.join(", ") + ".") +
+      (data.errors.length ? '<br /><span class="err">' + data.errors.map(escapeHtml).join("<br />") + "</span>" : "");
+    ["pjId", "pjName", "pjSource", "pjFilter"].forEach((k) => { $(k).value = ""; });
+    $("pjFiles").value = "";
+    $("pjKind").selectedIndex = 0;
+    pjChosen.clear();
+    $("pjLoad").click();
+  } catch (error) { $("pjStatus").innerHTML = '<span class="err">' + escapeHtml(error.message) + "</span>"; }
 });
 
 // --- county oversight ------------------------------------------------------

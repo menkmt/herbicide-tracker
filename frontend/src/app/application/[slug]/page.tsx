@@ -5,6 +5,7 @@ import { JsonLd, breadcrumbs } from "@/components/JsonLd";
 import { Legend } from "@/components/Legend";
 import { ParcelMap } from "@/components/ParcelMap";
 import { Parties } from "@/components/Parties";
+import { ProjectMap } from "@/components/ProjectMap";
 import { ApiError, api, formatAcres, formatDateRange } from "@/lib/api";
 
 interface Props {
@@ -103,6 +104,14 @@ export default async function ApplicationPage({ params }: Props) {
             </tbody>
           </table>
         </>
+      ) : application.project?.has_boundary ? (
+        <div className="notice" style={{ marginTop: 12 }}>
+          Placed using the boundary of {application.project.kind ?? "project"}{" "}
+          <strong>{application.project.identifier}</strong>: the shaded area is the part of the
+          unit inside the reported section{application.mtrs.length === 1 ? "" : "s"}{" "}
+          <strong>{application.mtrs.join(", ")}</strong> (dashed outline: the whole unit). It
+          shows where the work was permitted, not the exact area sprayed.
+        </div>
       ) : (
         <div className="notice" style={{ marginTop: 12 }}>
           The property inside these sections has not been identified yet, so the map shows
@@ -112,6 +121,8 @@ export default async function ApplicationPage({ params }: Props) {
           and is where the application was reported, not the area treated.
         </div>
       )}
+
+      {application.project && <ProjectMap project={application.project} />}
 
       <dl className="facts" style={{ marginTop: 16 }}>
         <dt>Township / range / section</dt>

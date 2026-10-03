@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import rate_limit, require_capability
 from app.api.people import parties_for
+from app.api.projects import project_for
 from app.config import Settings, get_settings
 from app.core.access import Capability, Principal, clamp_page_size
 from app.core.coverage import DocumentKind
@@ -346,6 +347,7 @@ def get_application(slug: str, session: Session = Depends(get_session),
                 cluster.owner_name,
                 cluster.date_start,
             ),
+            "project": project_for(session, cluster),
             "parcels": parcels,
             "flags": cluster.flags,
             "confidence": cluster.confidence,

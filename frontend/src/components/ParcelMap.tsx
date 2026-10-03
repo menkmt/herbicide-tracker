@@ -180,17 +180,38 @@ export function ParcelMap({ source, bounds, tall, radius }: ParcelMapProps) {
       } else {
         data = source;
       }
-      setCount(new Set(data.features.map((f) => f.properties?.cluster_id)).size);
+      setCount(
+        new Set(data.features.map((f) => f.properties?.cluster_id).filter((id) => id != null)).size,
+      );
 
       map.addSource("apps", { type: "geojson", data });
 
       const isSection = ["==", ["get", "geometry_kind"], "section"] as maplibregl.ExpressionSpecification;
       const isRed = ["==", ["get", "flag_level"], "red"] as maplibregl.ExpressionSpecification;
+      const isProject = ["==", ["get", "geometry_kind"], "project"] as maplibregl.ExpressionSpecification;
+
+      // THP / project units: a violet dashed edge under the applications, so
+      // they read as context — where the work was permitted — not as spraying.
+      map.addLayer({
+        id: "projects-fill",
+        type: "fill",
+        source: "apps",
+        filter: isProject,
+        paint: { "fill-color": "#a78bfa", "fill-opacity": 0.06 },
+      });
+      map.addLayer({
+        id: "projects-line",
+        type: "line",
+        source: "apps",
+        filter: isProject,
+        paint: { "line-color": "#a78bfa", "line-width": 2.4, "line-dasharray": [3, 2] },
+      });
 
       map.addLayer({
         id: "apps-fill",
         type: "fill",
         source: "apps",
+        filter: ["!", isProject],
         paint: {
           // Colour only ever means a warning: red for flagged, amber otherwise.
           "fill-color": ["case", isRed, "#ff6b6b", "#ffb156"],
@@ -201,7 +222,7 @@ export function ParcelMap({ source, bounds, tall, radius }: ParcelMapProps) {
         id: "apps-line-parcel",
         type: "line",
         source: "apps",
-        filter: ["!", isSection],
+        filter: ["all", ["!", isSection], ["!", isProject]],
         paint: { "line-color": ["case", isRed, "#ff6b6b", "#ffb156"], "line-width": 2.2 },
       });
       map.addLayer({
@@ -280,6 +301,7 @@ export function ParcelMap({ source, bounds, tall, radius }: ParcelMapProps) {
         if (!feature) return;
         const p = feature.properties as Record<string, string>;
         const section = p.geometry_kind === "section";
+        const inUnit = p.geometry_kind === "project_area";
         const flag = p.flag_headline
           ? `<div style="margin-top:6px;color:#ff8a8a"><strong>${escapeHtml(p.flag_headline)}</strong></div>`
           : "";
@@ -290,7 +312,10 @@ export function ParcelMap({ source, bounds, tall, radius }: ParcelMapProps) {
         const caveat = section
           ? "Dashed square is the one-square-mile section the use report names. " +
             "The property inside it has not been identified yet; this is not the sprayed area."
-          : "Outline is the property associated with this application, not the sprayed area.";
+          : inUnit
+            ? "Shaded area is the part of the THP / project unit inside the reported section — " +
+              "where the work was permitted, not the exact area sprayed."
+            : "Outline is the property associated with this application, not the sprayed area.";
         new maplibregl.Popup({ maxWidth: "300px" })
           .setLngLat(event.lngLat)
           .setHTML(
@@ -305,6 +330,31 @@ export function ParcelMap({ source, bounds, tall, radius }: ParcelMapProps) {
           )
           .addTo(map);
       });
+      map.on("click", "projects-fill", (event) => {
+        // An application drawn inside the unit has its own popup.
+        if (map.queryRenderedFeatures(event.point, { layers: ["apps-fill"] }).length) return;
+        const feature = event.features?.[0];
+        if (!feature) return;
+        const p = feature.properties as Record<string, string | number>;
+        let apps: Array<{ slug: string; title: string; date: string | null }> = [];
+        try { apps = JSON.parse(String(p.applications ?? "[]")); } catch { apps = []; }
+        const more = Number(p.application_count ?? apps.length) - apps.length;
+        new maplibregl.Popup({ maxWidth: "300px" })
+          .setLngLat(event.lngLat)
+          .setHTML(
+            `<div style="font-weight:700">${escapeHtml(String(p.title ?? "Project"))}</div>` +
+              (p.name ? `<div>${escapeHtml(String(p.name))}</div>` : "") +
+              `<div style="margin-top:6px;font-size:.85em;opacity:.8">Applications in this unit:</div>` +
+              apps.map((a) =>
+                `<div><a href="/application/${encodeURIComponent(a.slug)}">${escapeHtml(a.title)}</a>` +
+                `${a.date ? ` <span style="opacity:.7">${escapeHtml(a.date)}</span>` : ""}</div>`).join("") +
+              (more > 0 ? `<div style="opacity:.7">and ${more} more</div>` : "") +
+              `<div style="margin-top:6px;font-size:.8em;opacity:.75">Dashed violet line is the unit boundary from the project map.</div>`,
+          )
+          .addTo(map);
+      });
+      map.on("mouseenter", "projects-fill", () => { map.getCanvas().style.cursor = "pointer"; });
+      map.on("mouseleave", "projects-fill", () => { map.getCanvas().style.cursor = ""; });
       map.on("mouseenter", "apps-fill", () => { map.getCanvas().style.cursor = "pointer"; });
       map.on("mouseleave", "apps-fill", () => { map.getCanvas().style.cursor = ""; });
 
@@ -392,6 +442,7 @@ export function ParcelMap({ source, bounds, tall, radius }: ParcelMapProps) {
           <div className="map-panel-body">
             <div><span className="sw sw-parcel" /> Application, property identified</div>
             <div><span className="sw sw-section" /> Application, reported section only</div>
+            <div><span className="sw sw-project" /> THP / project unit</div>
             <div><span className="sw sw-red" /> Restricted or watch-listed chemical</div>
             <div><span className="sw sw-water" /> Streams &amp; water (USGS)</div>
             <div><span className="sw sw-station" /> Water monitoring station</div>
