@@ -229,8 +229,25 @@ dl.facts dd { margin: 0; }
 
 .map { height: 500px; width: 100%; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--bg-2); box-shadow: var(--shadow); }
 .map.tall { height: 74vh; }
-.maplibregl-popup-content { font-family: inherit; font-size: 0.88rem; background: var(--surface); color: var(--text); border-radius: 10px; border: 1px solid var(--line); }
-.maplibregl-popup-tip { border-top-color: var(--surface) !important; }
+/* Scoped under .map-wrap so these outrank maplibre-gl.css, which loads after
+   this file and would otherwise paint popups white under light text. */
+.map-wrap .maplibregl-popup-content {
+  font-family: inherit; font-size: 0.9rem; line-height: 1.45;
+  background: #131a2e; color: #e7ebf6;
+  border-radius: 12px; border: 1px solid rgba(148, 163, 205, 0.32);
+  padding: 14px 16px; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+}
+.map-wrap .maplibregl-popup-content a { color: #8fb0ff; font-weight: 600; }
+.map-wrap .maplibregl-popup-close-button { color: #e7ebf6; font-size: 18px; padding: 2px 8px; }
+.map-wrap .maplibregl-popup-close-button:hover { background: transparent; color: #ffffff; }
+.map-wrap .maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.map-wrap .maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.map-wrap .maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip { border-top-color: #131a2e; }
+.map-wrap .maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.map-wrap .maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.map-wrap .maplibregl-popup-anchor-top-right .maplibregl-popup-tip { border-bottom-color: #131a2e; }
+.map-wrap .maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: #131a2e; }
+.map-wrap .maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: #131a2e; }
 .maplibregl-ctrl-group { background: var(--surface) !important; }
 .maplibregl-ctrl-group button { filter: invert(1) hue-rotate(180deg); }
 
@@ -365,3 +382,20 @@ header.site nav a.support { color: var(--cyan); }
   .map-panel, .map-key { max-width: calc(100% - 70px); font-size: 0.82rem; }
   .map-key { bottom: 30px; }
 }
+
+/* --- parties ------------------------------------------------------------ */
+
+.party-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.party-card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px;
+}
+.party-card.person { display: flex; gap: 14px; align-items: flex-start; }
+.party-role { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--cyan); font-weight: 700; }
+.party-name { font-size: 1.1rem; font-weight: 700; margin: 2px 0 4px; }
+.party-contact { font-size: 0.9rem; margin-top: 4px; }
+.party-photo { margin: 0; flex: none; }
+.party-photo img {
+  width: 88px; height: 88px; object-fit: cover; border-radius: 14px;
+  border: 1px solid var(--line-strong); display: block;
+}
+.tiny { font-size: 0.75rem; }

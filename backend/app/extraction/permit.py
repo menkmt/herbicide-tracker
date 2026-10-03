@@ -193,7 +193,12 @@ def parse_header(text: str, permit: PermitRecord, provenance: Provenance) -> Non
     permit.type_of_use = _first(r"Type of Use:?\s*([A-Za-z ]+?)(?:\s{2,}|Notices|\n|$)", text)
     permit.primary_phone = _first(r"Primary Phone:?\s*(" + PHONE_PATTERN.pattern + ")", text)
 
-    applicant = _first(r"Applicant:\s*([^\n]+)", text)
+    applicant = _first(r"Applicant:[ \t]*([^\n]*)", text)
+    if applicant is not None and not _looks_like_name(applicant):
+        # Scanned layouts put the signed name on the line *above* the
+        # "Applicant:" label and the date after it. Take the line above.
+        above = _first(r"([^\n]+)\n\s*Applicant:", text)
+        applicant = above if above and _looks_like_name(above) else None
     if applicant:
         # "Shane Compton Staff Forester WM Beaty & Associates" — the name is
         # the leading proper-noun run, the rest is title and employer.
@@ -208,6 +213,25 @@ def parse_header(text: str, permit: PermitRecord, provenance: Provenance) -> Non
         else:
             permit.applicant_name = cleaned
         permit.field_sources["applicant_name"] = provenance.at("applicant signature block")
+
+
+def _looks_like_name(text: str | None) -> bool:
+    """True for "Shane Compton Staff Forester…", false for a date or blank."""
+    cleaned = re.sub(r"^[_\s,]+", "", text or "").strip()
+    if not cleaned or parse_date(cleaned.split("  ")[0]) is not None:
+        return False
+    if re.match(r"(?i)(january|february|march|april|may|june|july|august|september|"
+                r"october|november|december)\b", cleaned):
+        return False
+    return bool(re.match(r"[A-Z][a-z]+(?:\s+[A-Z]\.?)?\s+[A-Z][a-z]+", cleaned))
+
+
+def person_name(text: str | None) -> str | None:
+    """"Compton, Shane" -> "Shane Compton"; anything else unchanged."""
+    if not text:
+        return None
+    m = re.fullmatch(r"\s*([A-Za-z'\-]+),\s*([A-Za-z'.\- ]+?)\s*", text)
+    return f"{m.group(2).strip()} {m.group(1).strip()}" if m else text.strip()
 
 
 # ---------------------------------------------------------------------------

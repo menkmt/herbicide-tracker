@@ -115,6 +115,7 @@ export interface ApplicationDetail extends ApplicationRow {
   mtrs: string[];
   site_ids: string[];
   permit_numbers: string[];
+  parties?: Parties;
   confidence: string;
   flags: FlagSummary | null;
   parcels: Array<{
@@ -215,6 +216,39 @@ export interface Meta {
   published_site_categories: string[];
   planned_site_categories: string[];
   notes: string[];
+}
+
+export interface PartyCompany {
+  name: string;
+  slug?: string;
+  website?: string | null;
+  phone?: string | null;
+  phone_source?: string;
+  email?: string | null;
+  address?: string | null;
+  license?: string | null;
+  permit_number?: string;
+  operator_id?: string | null;
+  expires?: string | null;
+  permit?: string;
+}
+
+export interface Parties {
+  owner: PartyCompany | null;
+  operator: PartyCompany | null;
+  people: Array<{
+    name: string;
+    roles: string[];
+    permits: string[];
+    title: string | null;
+    photo: string | null;
+    photo_source: string | null;
+  }>;
+  qualified_applicators: Array<{
+    license: string; held_under: string; type: string; expires: string | null; permit: string;
+  }>;
+  contractors: PartyCompany[];
+  source_note: string;
 }
 
 export interface Official {

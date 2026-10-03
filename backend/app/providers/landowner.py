@@ -38,6 +38,11 @@ AGENCY_LABELS = {
     "STATE": ("state", "State land"),
     "LG": ("local", "Local government"),
     "PVT": ("private", "Private land"),
+    # The SMA layer maps federal and state managers; "undetermined" and
+    # "unknown" mean none is on record there, which in practice is private
+    # land, but the label says only what the source says.
+    "UND": ("not_public", "Not federal or state land"),
+    "UNK": ("not_public", "Not federal or state land"),
 }
 
 
@@ -47,7 +52,8 @@ class LandManagerError(RuntimeError):
 
 @dataclass
 class LandManager:
-    #: national_forest | blm | federal | state | local | tribal | private
+    #: national_forest | blm | federal | state | local | tribal | private |
+    #: not_public (no federal or state manager on record) | other
     category: str
     label: str
     unit: str | None
@@ -85,13 +91,20 @@ def classify(attributes: dict[str, Any]) -> LandManager:
     land has no federal or state manager, which is to say it is private."""
     source = "BLM Surface Management Agency"
     if not attributes:
-        return LandManager("private", "Private land", None, source)
+        return LandManager("not_public", "Not federal or state land", None, source)
     code = next(
         (str(attributes[f]).strip().upper() for f in AGENCY_FIELDS if attributes.get(f)), ""
     )
     unit = next((str(attributes[f]).strip() for f in UNIT_FIELDS if attributes.get(f)), None)
-    category, label = AGENCY_LABELS.get(code, ("federal" if code else "private",
-                                              code.title() if code else "Private land"))
+    if code in AGENCY_LABELS:
+        category, label = AGENCY_LABELS[code]
+    elif code:
+        # An agency code this file does not know: say so rather than guess.
+        category, label = "other", f"Managed by {code}"
+    else:
+        category, label = "not_public", "Not federal or state land"
+    if category == "not_public":
+        unit = None
     if category == "national_forest" and unit and "forest" not in unit.lower():
         unit = f"{unit} National Forest"
     return LandManager(category, label, unit, source)

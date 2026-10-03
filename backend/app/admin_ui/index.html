@@ -189,6 +189,25 @@
     <pre class="summary" id="inspSummary" style="display:none"></pre>
   </div>
 
+  <h2>People photos</h2>
+  <div class="panel">
+    <p class="small muted" style="margin-top:0">
+      Attach a photo to a person named on permits. It appears on every application where that
+      person is the agent or signed the permit in force. Re-uploading replaces it. The source is
+      required and is shown under the photo; location data in the file is removed.
+    </p>
+    <div class="row">
+      <div><label for="phName">Person's name</label><br /><input id="phName" size="22" placeholder="e.g. Shane Compton" /></div>
+      <div><label for="phEmployer">Employer</label><br /><input id="phEmployer" size="22" placeholder="e.g. WM Beaty & Associates" /></div>
+      <div style="flex:1 1 260px"><label for="phSource">Source of the photo</label><br /><input id="phSource" style="width:100%" placeholder="URL it came from, or who supplied it" /></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <input id="phFile" type="file" accept="image/*" />
+      <button id="phUpload">Upload photo</button>
+      <span id="phStatus" class="small muted"></span>
+    </div>
+  </div>
+
   <h2>Water monitoring stations</h2>
   <div class="panel">
     <p class="small muted" style="margin-top:0">
@@ -406,6 +425,25 @@ async function loadTraffic() {
 }
 
 $("refresh").addEventListener("click", () => { loadQueue(); loadTraffic(); });
+
+$("phUpload").addEventListener("click", async () => {
+  const file = $("phFile").files[0];
+  if (!authed() || !file || !$("phName").value.trim() || !$("phSource").value.trim()) {
+    $("phStatus").innerHTML = '<span class="err">Name, source and a photo are all required.</span>'; return;
+  }
+  const body = new FormData();
+  body.append("name", $("phName").value.trim());
+  body.append("source", $("phSource").value.trim());
+  if ($("phEmployer").value.trim()) body.append("employer", $("phEmployer").value.trim());
+  body.append("file", file);
+  $("phStatus").textContent = "Uploading…";
+  try {
+    const response = await fetch("/api/admin/people/photo", { method: "POST", headers: headers(), body });
+    const data = await response.json();
+    if (!response.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Upload failed");
+    $("phStatus").textContent = `Saved for ${data.person}. It shows on their applications now.`;
+  } catch (error) { $("phStatus").innerHTML = '<span class="err">' + escapeHtml(error.message) + "</span>"; }
+});
 
 $("wsImport").addEventListener("click", async () => {
   const file = $("wsFile").files[0];

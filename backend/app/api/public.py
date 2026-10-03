@@ -16,6 +16,7 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import rate_limit, require_capability
+from app.api.people import parties_for
 from app.config import Settings, get_settings
 from app.core.access import Capability, Principal, clamp_page_size
 from app.core.coverage import DocumentKind
@@ -339,6 +340,12 @@ def get_application(slug: str, session: Session = Depends(get_session),
             "mtrs": sorted({r.mtrs for r in records if r.mtrs}),
             "site_ids": sorted({r.site_id for r in records if r.site_id}),
             "permit_numbers": sorted({r.permit_number for r in records if r.permit_number}),
+            "parties": parties_for(
+                session,
+                sorted({r.permit_number for r in records if r.permit_number}),
+                cluster.owner_name,
+                cluster.date_start,
+            ),
             "parcels": parcels,
             "flags": cluster.flags,
             "confidence": cluster.confidence,

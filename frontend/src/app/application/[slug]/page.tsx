@@ -4,6 +4,7 @@ import { FlagList } from "@/components/Flags";
 import { JsonLd, breadcrumbs } from "@/components/JsonLd";
 import { Legend } from "@/components/Legend";
 import { ParcelMap } from "@/components/ParcelMap";
+import { Parties } from "@/components/Parties";
 import { ApiError, api, formatAcres, formatDateRange } from "@/lib/api";
 
 interface Props {
@@ -73,10 +74,13 @@ export default async function ApplicationPage({ params }: Props) {
         <p className="small muted">Title source: {application.title_basis}.</p>
       )}
 
+      <h2>Who</h2>
+      <Parties parties={application.parties} />
+
       <h2>Where</h2>
+      <ParcelMap source={`/api/map/application/${slug}`} />
       {application.parcels.length > 0 ? (
         <>
-          <ParcelMap source={`/api/map/application/${slug}`} />
           <p className="small muted" style={{ marginTop: 8 }}>
             The outlined parcels are recorded to the operator named on this application
             and lie within the sections it reports. The outline shows property
@@ -100,9 +104,9 @@ export default async function ApplicationPage({ params }: Props) {
           </table>
         </>
       ) : (
-        <div className="notice">
-          No parcel has been matched to this application yet, so no map is shown. The
-          reported location is the public-land-survey section
+        <div className="notice" style={{ marginTop: 12 }}>
+          The property inside these sections has not been identified yet, so the map shows
+          the reported public-land-survey section
           {application.mtrs.length === 1 ? " " : "s "}
           <strong>{application.mtrs.join(", ")}</strong>. A section is one square mile
           and is where the application was reported, not the area treated.

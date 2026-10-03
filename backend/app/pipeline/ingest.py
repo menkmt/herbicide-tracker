@@ -291,6 +291,34 @@ def persist_record(
     return row
 
 
+#: Header fields a second copy of a permit may supply.
+PERMIT_HEADER_FIELDS = (
+    "operator_name", "operator_id", "agent_name", "applicant_name", "applicant_title",
+    "issued_on", "valid_from", "expires_on", "permit_duration", "type_of_use",
+)
+
+
+def backfill_permit_header(row: Permit, permit: PermitRecord) -> list[str]:
+    """Copy header values the stored permit lacks from another copy of it.
+
+    A stored applicant "name" that is really a date (an earlier misread of a
+    scanned signature block) counts as missing.
+    """
+    from app.extraction.permit import _looks_like_name
+
+    filled = []
+    for name in PERMIT_HEADER_FIELDS:
+        new = getattr(permit, name, None)
+        old = getattr(row, name, None)
+        bad_old = name == "applicant_name" and old and not _looks_like_name(old)
+        if new and (old in (None, "") or bad_old):
+            setattr(row, name, new)
+            filled.append(name)
+    if "operator_name" in filled:
+        row.operator_key = company_key(row.operator_name) or None
+    return filled
+
+
 def persist_permit(
     session: Session,
     permit: PermitRecord,
@@ -305,7 +333,10 @@ def persist_permit(
         else None
     )
     if existing is not None:
-        # A permit re-delivered in a later production is the same permit.
+        # A permit re-delivered in a later production, or the same permit in
+        # a second format, is the same permit. Fill what the first copy
+        # missed; never overwrite what it had.
+        backfill_permit_header(existing, permit)
         return existing
 
     row = Permit(
