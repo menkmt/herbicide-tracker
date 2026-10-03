@@ -14,6 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/applications`, changeFrequency: "weekly", priority: 0.9 },
     { url: `${base}/counties`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${base}/report-card`, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${base}/dashboard`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${base}/support`, changeFrequency: "monthly", priority: 0.4 },
     { url: `${base}/contact`, changeFrequency: "yearly", priority: 0.4 },
     { url: `${base}/map`, changeFrequency: "weekly", priority: 0.7 },
@@ -36,6 +37,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: publishedSlugs.has(slug) ? "weekly" : "monthly",
       priority: publishedSlugs.has(slug) ? 0.8 : 0.5,
     });
+    if (publishedSlugs.has(slug)) {
+      entries.push({ url: `${base}/dashboard?county=${slug}`, changeFrequency: "weekly", priority: 0.7 });
+    }
   }
 
   try {

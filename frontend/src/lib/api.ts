@@ -134,6 +134,7 @@ export interface ApplicationDetail extends ApplicationRow {
   permit_numbers: string[];
   parties?: Parties;
   project?: ProjectInfo | null;
+  owner_tally?: OwnerTally | null;
   confidence: string;
   flags: FlagSummary | null;
   parcels: Array<{
@@ -347,6 +348,54 @@ export interface StatewideCard {
   totals: ReportCard["totals"];
 }
 
+export interface TallyCell {
+  applications: number;
+  gallons: number;
+  pounds: number;
+  acres?: number;
+  unresolved: Array<{ unit: string; amount: number; lines: number }>;
+}
+
+export interface TallySeries {
+  by_year: Record<string, TallyCell>;
+  all: TallyCell;
+}
+
+export interface Tallies {
+  scope: {
+    county: { slug: string; name: string | null } | null;
+    owner: { key: string; name: string } | null;
+  };
+  years: number[];
+  totals: TallySeries;
+  adjuvants: TallySeries;
+  chemicals: Array<TallySeries & { label: string; ingredients: Array<{ name: string; slug: string; url: string }> }>;
+  counties: Array<TallySeries & { name: string; slug: string }>;
+  landowners: Array<TallySeries & { name: string; key: string }>;
+  landowner_count: number;
+  held_out: Array<{
+    document_number: string | null;
+    date: string | null;
+    county: string | null;
+    county_slug: string | null;
+    product: string | null;
+    amount: number;
+    unit: string;
+    acres: number;
+    rate: number;
+    typical_rate: number;
+    url: string | null;
+  }>;
+}
+
+export interface OwnerTally {
+  key: string;
+  years: Array<TallyCell & { year: number }>;
+  all: TallyCell;
+  top_chemicals: string[];
+  held_out: number;
+}
+
 export const api = {
   meta: () => request<Meta>("/api/meta"),
   reportCard: (slug: string) =>
@@ -370,6 +419,12 @@ export const api = {
   application: (slug: string) =>
     request<ApplicationDetail>(`/api/applications/${encodeURIComponent(slug)}`),
   chemicals: () => request<{ chemicals: Chemical[] }>("/api/chemicals"),
+  tallies: (params: { county?: string; owner?: string }) => {
+    const query = new URLSearchParams();
+    if (params.county) query.set("county", params.county);
+    if (params.owner) query.set("owner", params.owner);
+    return request<Tallies>(`/api/tallies?${query.toString()}`);
+  },
   chemical: (slug: string) =>
     request<ChemicalDetail>(`/api/chemicals/${encodeURIComponent(slug)}`),
   radius: (params: Record<string, string | number>) => {
@@ -395,6 +450,13 @@ export function formatDateRange(start: string | null, end: string | null): strin
     "en-US",
     { ...options, year: "numeric" },
   )}`;
+}
+
+/** "3,534 gal" / "914 lb" — product amounts, never added across units. */
+export function formatAmount(value: number | undefined, unit: "gal" | "lb"): string {
+  if (!value) return "";
+  const digits = value >= 100 ? 0 : 1;
+  return `${value.toLocaleString("en-US", { maximumFractionDigits: digits })} ${unit}`;
 }
 
 export function formatAcres(acres: number | null, partial = false): string {

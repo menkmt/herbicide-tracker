@@ -22,6 +22,7 @@ from app.api import (
     projects,
     public,
     reportcard,
+    tallies,
     water,
 )
 from app.config import get_settings
@@ -63,6 +64,7 @@ app.include_router(water.router)
 app.include_router(people.router)
 app.include_router(companies.router)
 app.include_router(projects.router)
+app.include_router(tallies.router)
 
 
 @app.exception_handler(AccessDenied)

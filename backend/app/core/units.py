@@ -87,6 +87,7 @@ DRY_FORMULATION_TOKENS = (
 LIQUID_FORMULATION_TOKENS = (
     "SL", "EC", "SC", "ME", "EW", "SE", "AS", "LC", "L",
     "LIQUID", "SOLUTION", "CONCENTRATE", "EMULSIFIABLE",
+    "MSO", "OIL", "COC",  # methylated seed oil, crop oil concentrate
 )
 
 

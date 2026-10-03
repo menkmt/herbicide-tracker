@@ -1,4 +1,5 @@
-import type { PartyCompany, Parties as PartiesData } from "@/lib/api";
+import Link from "next/link";
+import { formatAmount, type OwnerTally, type PartyCompany, type Parties as PartiesData } from "@/lib/api";
 
 /**
  * Who is behind an application: the property owner, the permit holder and
@@ -24,7 +25,35 @@ function Contact({ c }: { c: PartyCompany }) {
   );
 }
 
-export function Parties({ parties }: { parties: PartiesData | undefined }) {
+/** Herbicide product applied on this landowner's ground, year by year. */
+function OwnerTallyBlock({ tally }: { tally: OwnerTally }) {
+  const amount = (c: { gallons: number; pounds: number }) =>
+    [formatAmount(c.gallons, "gal"), formatAmount(c.pounds, "lb")].filter(Boolean).join(" · ") || "—";
+  return (
+    <div className="owner-tally">
+      <div className="owner-tally-head">Herbicide on their land, by year</div>
+      <table>
+        <tbody>
+          {tally.years.map((y) => (
+            <tr key={y.year}>
+              <td>{y.year}</td>
+              <td>{amount(y)}</td>
+              <td className="muted">{(y.acres ?? 0).toLocaleString("en-US", { maximumFractionDigits: 0 })} ac</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {tally.top_chemicals.length > 0 && (
+        <div className="muted tiny" style={{ marginTop: 4 }}>Mostly {tally.top_chemicals.join(", ")}</div>
+      )}
+      <Link href={`/dashboard?owner=${encodeURIComponent(tally.key)}`} className="tiny">
+        Full breakdown by chemical →
+      </Link>
+    </div>
+  );
+}
+
+export function Parties({ parties, ownerTally }: { parties: PartiesData | undefined; ownerTally?: OwnerTally | null }) {
   if (!parties) return null;
   const { owner, operator, people, qualified_applicators: qals, contractors } = parties;
   const sameAsOwner = owner && operator &&
@@ -40,6 +69,7 @@ export function Parties({ parties }: { parties: PartiesData | undefined }) {
             {owner.address && <div className="muted small">{owner.address}</div>}
             <Contact c={owner} />
             {sameAsOwner && <div className="muted small">Also the permit holder.</div>}
+            {ownerTally && <OwnerTallyBlock tally={ownerTally} />}
           </div>
         )}
         {operator && !sameAsOwner && (

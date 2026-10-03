@@ -406,3 +406,50 @@ header.site nav a.support { color: var(--cyan); }
   border: 1px solid var(--line-strong); display: block;
 }
 .tiny { font-size: 0.75rem; }
+
+/* --- herbicide totals dashboard ------------------------------------------ */
+
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 100px;
+  border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text);
+  font-size: 0.86rem; text-decoration: none;
+}
+.chip:hover { border-color: var(--accent); text-decoration: none; }
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius); }
+table.tally-table { min-width: max-content; }
+table.records .num, table.records th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+table.tally-table td.total { background: rgba(109, 141, 255, 0.05); font-weight: 600; }
+table.tally-table td.total .tiny { font-weight: 400; }
+.chem-name { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.method-list { padding-left: 18px; max-width: 75ch; }
+.method-list li { margin: 4px 0; }
+
+.chart-pair { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin-top: 18px; }
+.year-chart {
+  margin: 0; padding: 16px 16px 8px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--radius); min-width: 0;
+}
+.year-chart-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 8px; }
+.year-chart-legend { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 6px; padding: 0; font-size: 0.8rem; color: var(--muted); }
+.year-chart-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.year-chart-plot { position: relative; overflow: hidden; }
+.year-chart-plot svg { display: block; }
+.year-chart-plot .grid { stroke: var(--line); stroke-width: 1; }
+.year-chart-plot .tick { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.year-chart-plot rect:focus { outline: none; }
+.year-chart-tip {
+  position: absolute; z-index: 2; width: 200px; pointer-events: none;
+  background: var(--bg-2); border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+  padding: 8px 10px; font-size: 0.8rem; box-shadow: var(--shadow);
+}
+.tip-head { font-weight: 700; margin-bottom: 4px; }
+.tip-row { display: flex; align-items: center; gap: 6px; }
+.tip-label { flex: 1; color: var(--muted); }
+.tip-value { font-variant-numeric: tabular-nums; }
+
+.owner-tally { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 0.84rem; }
+.owner-tally-head { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 4px; }
+.owner-tally table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.owner-tally td { padding: 2px 0; vertical-align: top; }
+.owner-tally td + td { text-align: right; padding-left: 10px; }

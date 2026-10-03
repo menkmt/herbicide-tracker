@@ -76,7 +76,7 @@ export default async function ApplicationPage({ params }: Props) {
       )}
 
       <h2>Who</h2>
-      <Parties parties={application.parties} />
+      <Parties parties={application.parties} ownerTally={application.owner_tally} />
 
       <h2>Where</h2>
       <ParcelMap source={`/api/map/application/${slug}`} />

@@ -95,6 +95,8 @@ export default async function CountyPage({ params, searchParams }: Props) {
       <p>
         <Link href={`/map?county=${county}`}>View these applications on the map →</Link>
         {" · "}
+        <Link href={`/dashboard?county=${county}`}>Herbicide totals by year →</Link>
+        {" · "}
         <a href="#report-card">Oversight report card ↓</a>
       </p>
 
