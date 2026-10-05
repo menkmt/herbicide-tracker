@@ -54,6 +54,28 @@ export default async function HomePage() {
         </form>
       </section>
 
+      <section
+        aria-label="Data update notice"
+        style={{
+          margin: "22px 0 30px",
+          padding: "18px 20px",
+          border: "1px solid rgba(32, 96, 67, 0.28)",
+          borderRadius: 14,
+          background: "rgba(32, 96, 67, 0.07)",
+        }}
+      >
+        <strong style={{ display: "block", marginBottom: 6 }}>
+          Herbicide Tracker is actively being populated.
+        </strong>
+        <p style={{ margin: 0 }}>
+          We are currently waiting on public records from all California counties for
+          2025 and 2026 herbicide use records requested through the California Public
+          Records Act. As counties produce those records, we will review and add them
+          to the tracker. Expect substantial new data to be added over the next 30–60
+          days as responses arrive.
+        </p>
+      </section>
+
       <div className="cards stats">
         <div className="card">
           <div className="n">{recent.total.toLocaleString()}</div>
